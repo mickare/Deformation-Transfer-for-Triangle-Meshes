@@ -100,10 +100,16 @@ class BrowserVisualizer:
             z=5000
         )
 
-    def addMesh(self, mesh: Mesh) -> "BrowserVisualizer":
-        x, y, z = mesh.vertices.T
+    def addMesh(self, mesh: Mesh, offset: Vec3f = (0, 0, 0)) -> "BrowserVisualizer":
+        x, y, z = (mesh.vertices + offset).T
         vx, vy, vz = mesh.faces.T
         self._data.append(go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **self.mesh_kwargs))
+        return self
+
+    def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Vec3f = (0, 0, 0)
+                   , **kwargs) -> "BrowserVisualizer":
+        x, y, z = (np.asarray(points) + offset).T
+        self._data.append(go.Scatter3d(x=x, y=y, z=z, **kwargs))
         return self
 
     def show(self, camera: ODict = None) -> None:
@@ -135,9 +141,17 @@ def example_plot():
     cat = Mesh.from_file_obj(cat_path)
     dog = Mesh.from_file_obj(dog_path)
 
-    cat.move((0, 0, cat.size()[2] + dog.size()[2]))
-
-    BrowserVisualizer().addMesh(cat).addMesh(dog).show()
+    vis = BrowserVisualizer()
+    vis.addMesh(cat, offset=(0, 0, cat.size()[2] + dog.size()[2]))
+    vis.addMesh(dog)
+    vis.addScatter(
+        dog.vertices,
+        marker=dict(
+            color='red',
+            size=3
+        )
+    )
+    vis.show()
 
 
 if __name__ == "__main__":
