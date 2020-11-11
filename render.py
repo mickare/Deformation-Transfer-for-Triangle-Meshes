@@ -100,10 +100,12 @@ class BrowserVisualizer:
             z=5000
         )
 
-    def addMesh(self, mesh: Mesh, offset: Vec3f = (0, 0, 0)) -> "BrowserVisualizer":
+    def addMesh(self, mesh: Mesh, offset: Vec3f = (0, 0, 0), **kwargs) -> "BrowserVisualizer":
         x, y, z = (mesh.vertices + offset).T
         vx, vy, vz = mesh.faces.T
-        self._data.append(go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **self.mesh_kwargs))
+        mkwargs = dict(self.mesh_kwargs)
+        mkwargs.update(kwargs)
+        self._data.append(go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **mkwargs))
         return self
 
     def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Vec3f = (0, 0, 0)
@@ -162,25 +164,29 @@ def plot_example2():
     cat = Mesh.from_file_obj(cat_path)
     dog = Mesh.from_file_obj(dog_path)
 
+    cat_index_label = [f"index: {i}" for i, v in enumerate(cat.vertices)]
     vis = BrowserVisualizer()
-    vis.addMesh(cat)
+    vis.addMesh(cat, hovertext=cat_index_label)
     vis.addScatter(
         cat.vertices,
         marker=dict(
             color='red',
-            size=3
-        )
+            size=4
+        ),
+        hovertext=cat_index_label
     )
     vis.show()
 
+    dog_index_label = [f"index: {i}" for i, v in enumerate(dog.vertices)]
     vis = BrowserVisualizer()
-    vis.addMesh(dog)
+    vis.addMesh(dog, hovertext=dog_index_label)
     vis.addScatter(
         dog.vertices,
         marker=dict(
             color='red',
-            size=3
-        )
+            size=4
+        ),
+        hovertext=dog_index_label
     )
     vis.show()
 
