@@ -132,7 +132,7 @@ def example_plot():
     cat_path = "models/lowpoly_cat/cat_reference.obj"
     dog_path = "models/lowpoly_dog/dog_reference.obj"
 
-    cat = Mesh.from_file_obj(cat_path).scale(10)
+    cat = Mesh.from_file_obj(cat_path)
     dog = Mesh.from_file_obj(dog_path)
 
     cat.move((0, 0, cat.size()[2] + dog.size()[2]))
