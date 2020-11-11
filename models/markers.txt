@@ -1,0 +1,30 @@
+#source target
+#cat dog
+80 267 # front left foot
+284 33 # front right foot
+59 294 # back left foot
+263 60 # back right foot
+160 398 # back left knee
+383 151 # back right knee
+183 219 # belly
+6 244 # left back leg to belly
+209 10 # right back leg to belly
+14 238 # left front leg to belly
+217 4 # right front leg to belly
+180 414 # tail start upper
+285 415 # tail start lower
+371 427 # tail tip
+353 422 # tail mid upper
+354 421 # tail mid lower
+182 223 # lower back
+188 220 # shoulders
+194 467 # top of head
+133 470 # left ear tip
+341 203 # right ear tip
+23 469 # outer ear left
+226 202 # outer ear right
+25 454 # left eye
+228 189 # right eye
+330 342 # nose
+123 327 # left jaw
+331 91 # right jaw
