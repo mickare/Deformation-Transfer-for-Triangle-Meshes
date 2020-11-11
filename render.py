@@ -133,7 +133,7 @@ class BrowserVisualizer:
         fig.show()
 
 
-def example_plot():
+def plot_example1():
     """Simple example plot showing both a cat and a dog"""
     cat_path = "models/lowpoly_cat/cat_reference.obj"
     dog_path = "models/lowpoly_dog/dog_reference.obj"
@@ -154,5 +154,36 @@ def example_plot():
     vis.show()
 
 
+def plot_example2():
+    """Simple example plot showing both a cat and a dog"""
+    cat_path = "models/lowpoly_cat/cat_reference.obj"
+    dog_path = "models/lowpoly_dog/dog_reference.obj"
+
+    cat = Mesh.from_file_obj(cat_path)
+    dog = Mesh.from_file_obj(dog_path)
+
+    vis = BrowserVisualizer()
+    vis.addMesh(cat)
+    vis.addScatter(
+        cat.vertices,
+        marker=dict(
+            color='red',
+            size=3
+        )
+    )
+    vis.show()
+
+    vis = BrowserVisualizer()
+    vis.addMesh(dog)
+    vis.addScatter(
+        dog.vertices,
+        marker=dict(
+            color='red',
+            size=3
+        )
+    )
+    vis.show()
+
+
 if __name__ == "__main__":
-    example_plot()
+    plot_example2()
