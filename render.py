@@ -5,6 +5,7 @@ import numpy as np
 import plotly
 import pywavefront
 import plotly.graph_objects as go
+import config
 
 ODict = Optional[Dict]
 Vec3f = Union[np.ndarray, Sequence[float], Tuple[float, float, float]]
@@ -185,5 +186,39 @@ def plot_example2():
     vis.show()
 
 
+def get_markers():
+    markers = []
+    with open(config.markers, 'r') as f:
+        for line in f:
+            if line[0] == "#":
+                continue
+            m = line.split(' ')
+            markers.append((int(m[0]), int(m[1])))
+    return markers
+
+
+def plot_example_markers():
+    """Check if markers are correct"""
+
+    cat = Mesh.from_file_obj(config.source_reference)
+    dog = Mesh.from_file_obj(config.target_reference)
+
+    for m in get_markers():
+        cat.vertices[m[0]][0] = dog.vertices[m[1]][0]
+        cat.vertices[m[0]][1] = dog.vertices[m[1]][1]
+        cat.vertices[m[0]][2] = dog.vertices[m[1]][2]
+
+    vis = BrowserVisualizer()
+    vis.addMesh(cat)
+    vis.addScatter(
+        cat.vertices,
+        marker=dict(
+            color='red',
+            size=3
+        )
+    )
+    vis.show()
+
+
 if __name__ == "__main__":
-    plot_example2()
+    plot_example_markers()
