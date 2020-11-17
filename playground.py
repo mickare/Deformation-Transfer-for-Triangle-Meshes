@@ -47,14 +47,6 @@ interm_vertices = np.concatenate((source.vertices, v4), axis=0)
 
 print("TEST")
 
-"""
-V = [v2-v1, v3-v1, v4-v1]
-
-wij = iv1 x2 - iv1 x1 + iv2 x3 - iv2 x1 + iv3 x4 - iv3 x1
-
-wij = (-iv1 -iv2 - iv3) x1  +  iv1 x2  +  iv2 x3 + iv3 x4
-"""
-
 vertices_length_flat = len(interm_vertices) * 3
 
 # Smoothness
@@ -69,7 +61,7 @@ AEi = dok_matrix(
     dtype=np.float
 )
 
-b = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1] * len(interm_faces))
+b = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1] * len(interm_faces), dtype=np.float)
 
 # row = 0
 for index, (f, invV) in enumerate(zip(interm_faces, invVs)):  # type: int, (np.ndarray, np.ndarray)
@@ -80,6 +72,12 @@ for index, (f, invV) in enumerate(zip(interm_faces, invVs)):  # type: int, (np.n
     i2 = f[2]
     i3 = f[3]
 
+    """
+    V = [v2-v1, v3-v1, v4-v1]^-1
+    
+    w_ij = v1 x2 - v1 x1 + v2 x3 - v2 x1 + v3 x4 - v3 x1
+    w_ij = -(v1+v2+v3) x1 + v1 x2 + v2 x3 + v3 x4
+    """
     kleinA = np.zeros(shape=(9, 12))
     for i in range(3):
         for j in range(3):
@@ -95,26 +93,28 @@ for index, (f, invV) in enumerate(zip(interm_faces, invVs)):  # type: int, (np.n
 
 for mark_src_i, mark_dest_i in markers:
     i = mark_src_i * 3
-    valueB = np.matmul(AEi[:, i:i + 3], target.vertices[mark_dest_i].reshape((-1, 1)))
+    valueB = AEi[:, i:i + 3].__matmul__(target.vertices[mark_dest_i])
     b -= valueB
     AEi[:, i:i + 3] = 0
 
-AEi = AEi.tocsc()
+A = AEi.tocsc()
+At = A.transpose()
+AtA = At.__matmul__(A)
+AtB = At.__matmul__(b)
 
-AEiT = AEi.transpose()
-wow = AEiT.__matmul__(AEi)
+# U, S, Vt = svds(AtA, k=len(source.vertices), which='LM')
+U, S, Vt = svds(AtA, k=len(source.vertices))
+sinv = np.identity(len(S)) / S
+psInv = np.matmul(np.matmul(Vt.transpose(), sinv), U.transpose())
 
-AtB = AEiT * b
-
-u, s, vt = svds(wow)
-sinv = np.identity(len(s)) / s
-psInv = np.matmul(np.matmul(vt.transpose(), sinv), u.transpose())
-xschlange = np.matmul(psInv, AtB)
+result = np.matmul(psInv, AtB)
 
 final_mesh = meshlib.Mesh(
-    vertices=np.transpose((xschlange[0::4], xschlange[1::4], xschlange[2::4])),
-    faces=source.faces
+    vertices=result.reshape((-1,4)), # np.transpose((result[0::4], result[1::4], result[2::4])),
+    faces=target.faces
 )
+# for mark_src_i, mark_dest_i in markers:
+#     final_mesh.vertices[mark_src_i] = target.vertices[mark_dest_i]
 
 vis = BrowserVisualizer()
 vis.addMesh(final_mesh)
