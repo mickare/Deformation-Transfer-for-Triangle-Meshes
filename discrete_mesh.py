@@ -14,6 +14,14 @@ class DiscreteMesh:
     offset: np.ndarray
 
     @classmethod
+    def calc_triangle_norm(cls, mesh: Mesh) -> np.ndarray:
+        v1, v2, v3 = mesh.vertices[mesh.faces].transpose((1, 0, 2))
+        a = v2 - v1
+        b = v3 - v1
+        tmp = np.cross(a, b)
+        return v1 + tmp / np.sqrt(np.linalg.norm(tmp))
+
+    @classmethod
     def from_mesh(cls, mesh: Mesh) -> "DiscreteMesh":
         """
         Computes the vectors for the closed form equation in the paper (eq. 3).
