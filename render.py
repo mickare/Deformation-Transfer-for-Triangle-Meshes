@@ -31,8 +31,12 @@ class BrowserVisualizer:
             z=5000
         )
 
-    def addMesh(self, mesh: Mesh, offset: Vec3f = (0, 0, 0), **kwargs) -> "BrowserVisualizer":
-        x, y, z = (mesh.vertices + offset).T
+    def addMesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
+        x, y, z = mesh.vertices.T[:3]
+        if offset:
+            x += offset[0]
+            y += offset[1]
+            z += offset[2]
         vx, vy, vz = mesh.faces.T
         mkwargs = dict(self.mesh_kwargs)
         mkwargs.update(kwargs)
