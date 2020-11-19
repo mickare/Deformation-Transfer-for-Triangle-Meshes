@@ -43,9 +43,12 @@ class BrowserVisualizer:
         self._data.append(go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **mkwargs))
         return self
 
-    def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Vec3f = (0, 0, 0)
-                   , **kwargs) -> "BrowserVisualizer":
-        x, y, z = (np.asarray(points) + offset).T
+    def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
+                   **kwargs) -> "BrowserVisualizer":
+        pts = np.asarray(points)
+        if offset:
+            pts += offset
+        x, y, z = pts.T
         self._data.append(go.Scatter3d(x=x, y=y, z=z, **kwargs))
         return self
 
