@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 import pywavefront
+from scipy.cluster import vq
 
-from mathlib.vector import Vec3f
+from mathlib.vector import Vec3f, Vector3D
 
 
 @dataclass
@@ -73,3 +74,43 @@ class Mesh:
         :return:
         """
         self.vertices += offset
+
+
+class MeshAdaption:
+    def __init__(self, transform: np.ndarray):
+        assert transform.shape == (4, 4)
+        self._transform = transform
+
+    def apply(self, mesh: Mesh):
+        return Mesh(
+            vertices=Vector3D.apply(mesh.vertices, self._transform),
+            faces=np.array(mesh.faces)
+        )
+
+    def reverse(self, mesh: Mesh):
+        return Mesh(
+            vertices=Vector3D.apply(mesh.vertices, np.linalg.inv(self._transform)),
+            faces=np.array(mesh.faces)
+        )
+
+    @classmethod
+    def unify_destination(cls, src: Mesh, dst: Mesh, markers: List[Tuple[int, int]]):
+        if not markers:
+            return cls(np.identity(4))
+        elif len(markers) == 1:
+            si, di = markers[0]
+            return cls(
+                Vector3D.new_offset(src.vertices[si] - dst.vertices[di])
+            )
+        else:
+            m = np.array(markers)
+            srcm = src.vertices[m[:, 0]]
+            dstm = dst.vertices[m[:, 1]]
+            spl = np.random.choice(len(markers), size=int(len(markers) / 2), replace=False)
+            rest = np.array([i for i in range(len(markers)) if i not in spl])
+
+            delta_src = np.median(srcm[spl], axis=0) - np.median(srcm[rest], axis=0)
+            delta_dst = np.median(dstm[spl], axis=0) - np.median(dstm[rest], axis=0)
+
+            # A dst ~= src
+            # A dst - src ~= 0

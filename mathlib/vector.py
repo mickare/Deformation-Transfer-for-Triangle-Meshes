@@ -27,6 +27,14 @@ class Vector3D:
                          [0, 0, 0, 1]])
 
     @classmethod
+    def new_offset(cls, offset: Vec3f):
+        offset = np.asarray(offset)
+        assert offset.shape == (3,)
+        result = np.zeros((4, 4))
+        result[0:3, 3] = offset
+        return result
+
+    @classmethod
     def rotate(cls, vec: np.ndarray, axis: Vec3f, angle: float):
         return cls.apply(vec, cls.new_rotation(axis, angle))
 

@@ -136,7 +136,7 @@ def get_markers():
                 continue
             m = line.split(' ')
             markers.append((int(m[0]), int(m[1])))
-    return markers
+    return np.array(markers)
 
 
 def plot_example_markers():
@@ -163,4 +163,4 @@ def plot_example_markers():
 
 
 if __name__ == "__main__":
-    plot_example_markers()
+    plot_example()
