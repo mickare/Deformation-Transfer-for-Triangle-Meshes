@@ -170,25 +170,44 @@ for iteration in range(iterations):
     pbar_next("Rendering")
 
     vis = BrowserVisualizer()
-    vis.add_mesh(result)
-    vis.add_mesh(original_source, color="red", opacity=0.03)
-    vis.add_mesh(original_target, color="blue", opacity=0.03)
+    vis.add_mesh(result,
+                 name=f"Result {iteration}",
+                 text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 )
+    vis.add_mesh(original_source,
+                 name="Source",
+                 color="red",
+                 opacity=0.025,
+                 # text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 hoverinfo='skip',
+                 )
+    vis.add_mesh(original_target,
+                 name="Target",
+                 color="blue",
+                 opacity=0.025,
+                 # text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 hoverinfo='skip',
+                 )
     vis.add_scatter(
         original_target.vertices[markers[:, 1]],
         marker=dict(
             color='yellow',
-            size=2,
-            opacity=0.9
+            size=3,
+            opacity=0.9,
+            symbol='x',
         ),
+        text=[f"<b>Index:</b> {t}" for s, t in markers],
         name="Marker Target"
     )
     vis.add_scatter(
         original_source.vertices[markers[:, 0]],
         marker=dict(
             color='red',
-            size=2,
-            opacity=0.9
+            size=3,
+            opacity=0.9,
+            symbol='x',
         ),
+        text=[f"<b>Index:</b> {s}" for s, t in markers],
         name="Marker Source"
     )
     vis.add_scatter(
@@ -196,7 +215,7 @@ for iteration in range(iterations):
         marker=dict(
             color='blue',
             size=1,
-            opacity=0.2
+            opacity=0.2,
         ),
         name="Vertex Target"
     )
