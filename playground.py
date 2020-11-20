@@ -1,5 +1,3 @@
-import math
-import sys
 from typing import List
 
 import numpy as np
@@ -9,9 +7,7 @@ from scipy.sparse import dok_matrix, lil_matrix
 from scipy.sparse.linalg import lsqr
 
 import meshlib
-from discrete_mesh import TriangleSpanMesh
-from render import get_markers, BrowserVisualizer, MeshPlots
-from utils import tween
+from render import get_markers, BrowserVisualizer
 
 original_source = meshlib.Mesh.from_file_obj("models/lowpoly_cat/cat_reference.obj")
 original_target = meshlib.Mesh.from_file_obj("models/lowpoly_dog/dog_reference.obj")
