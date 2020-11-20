@@ -50,22 +50,20 @@ class BrowserVisualizer:
         return self
 
     @classmethod
-    def make_scatter(cls, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                     lines=False, **kwargs):
+    def make_scatter(cls, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None, **kwargs):
         kwargs.setdefault("marker", {})
         kwargs["marker"].setdefault("size", 0.1)
+        kwargs.setdefault("mode", "markers")
 
         pts = np.asarray(points)
         if offset is not None:
             pts += offset
-        if not lines:
-            pts = np.asarray(tween(pts.tolist(), (np.nan, np.nan, np.nan)))
         x, y, z = pts.T
         return go.Scatter3d(x=x, y=y, z=z, **kwargs)
 
     def add_scatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                    lines=False, **kwargs) -> "BrowserVisualizer":
-        self._data.append(self.make_scatter(points, offset, lines, **kwargs))
+                    **kwargs) -> "BrowserVisualizer":
+        self._data.append(self.make_scatter(points, offset, **kwargs))
         return self
 
     def show(self, camera: ODict = None, **kwargs) -> None:
