@@ -58,7 +58,7 @@ mesh_kwargs = dict(
         z=5000
     ),
     hovertemplate=hovertemplate,
-    opacity=0.4,
+    opacity=0.5,
 )
 
 colorwheel = [
@@ -141,6 +141,7 @@ fig.add_trace(
     BrowserVisualizer.make_mesh(
         source_rotated,
         text=[f"<b>Vertex:</b> {n}" for n in range(len(source_rotated.vertices))],
+        name="Source",
         **mesh_kwargs,
     ),
     row=1,
@@ -150,6 +151,7 @@ fig.add_trace(
     BrowserVisualizer.make_mesh(
         target_rotated,
         text=[f"<b>Vertex:</b> {n}" for n in range(len(target_rotated.vertices))],
+        name="Target",
         **mesh_kwargs,
     ),
     row=1,
