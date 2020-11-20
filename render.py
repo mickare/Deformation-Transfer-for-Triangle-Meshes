@@ -32,8 +32,8 @@ class BrowserVisualizer:
         )
 
     def addMesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
-        x, y, z = mesh.vertices.T[:3]
-        if offset:
+        x, y, z = np.array(mesh.vertices.T[:3])
+        if offset is not None:
             x += offset[0]
             y += offset[1]
             z += offset[2]
@@ -46,13 +46,13 @@ class BrowserVisualizer:
     def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
                    **kwargs) -> "BrowserVisualizer":
         pts = np.asarray(points)
-        if offset:
+        if offset is not None:
             pts += offset
         x, y, z = pts.T
         self._data.append(go.Scatter3d(x=x, y=y, z=z, **kwargs))
         return self
 
-    def show(self, camera: ODict = None) -> None:
+    def show(self, camera: ODict = None, **kwargs) -> None:
         camera = camera or {}
         camera.setdefault("up", dict(x=0, y=1, z=0))
 
@@ -72,7 +72,19 @@ class BrowserVisualizer:
             ),
             scene_camera=camera
         )
-        fig.show()
+        fig.show(**kwargs)
+
+
+class MeshPlots:
+    @classmethod
+    def side_by_side(cls, meshes: Sequence[Mesh], spacing=0.5, axis=2) -> BrowserVisualizer:
+        vis = BrowserVisualizer()
+        offset = np.zeros(3)
+        for m in meshes:
+            size = m.size()[axis]
+            vis.addMesh(m, offset=offset)
+            offset += (0, 0, size + spacing)
+        return vis
 
 
 def plot_example1():
@@ -166,4 +178,4 @@ def plot_example_markers():
 
 
 if __name__ == "__main__":
-    plot_example()
+    plot_example1()
