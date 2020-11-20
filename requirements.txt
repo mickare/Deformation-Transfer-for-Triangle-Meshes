@@ -2,3 +2,4 @@ numpy
 scipy
 PyWavefront
 plotly
+tqdm
