@@ -128,7 +128,7 @@ assert row == AEs.shape[0]
 # Start of loop
 
 iterations = 3
-total_steps = 9  # Steps per iteration
+total_steps = 5  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
 
