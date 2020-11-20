@@ -7,11 +7,13 @@ import scipy
 import tqdm
 from scipy.sparse import dok_matrix, lil_matrix
 from scipy.sparse.linalg import lsqr
+from scipy.spatial import KDTree
 
 import meshlib
 from discrete_mesh import TriangleSpanMesh
 from render import get_markers, BrowserVisualizer, MeshPlots
 from utils import tween
+
 
 original_source = meshlib.Mesh.from_file_obj("models/lowpoly_cat/cat_reference.obj")
 original_target = meshlib.Mesh.from_file_obj("models/lowpoly_dog/dog_reference.obj")
@@ -26,11 +28,24 @@ subject = original_source.to_fourth_dimension()
 # Weights of cost functions
 Ws = 1.0
 Wi = 0.1
+Wc = [1.0, 200.0, 1000.0, 5000.0]
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
 adjacent: List[List[int]] = [[j for j in np.where(subject.faces == f)[0] if j != i]
                              for i, f in enumerate(subject.faces)]
+
+
+def get_closest_points(kd_tree: KDTree, verts: np.array):
+    return kd_tree.query(verts)[1]
+
+
+def get_aec(num_verts):
+    return scipy.sparse.identity(num_verts*3, dtype=np.float, format="lil")
+
+
+def get_bec(closest_points: np.array, verts: np.array):
+    return verts[closest_points]
 
 
 class TransformEntry:
@@ -124,10 +139,14 @@ for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost"
         row += 9
 assert row == AEs.shape[0]
 
+# KDTree for closest points in E_c
+kd_tree_target = KDTree(target_mesh.vertices)
+result_verts = 0
+
 #########################################################
 # Start of loop
 
-iterations = 3
+iterations = 4
 total_steps = 9  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
@@ -144,6 +163,10 @@ for iteration in range(iterations):
     A = scipy.sparse.vstack((AEi * Wi, AEs * Ws), format="lil")
     b = np.concatenate((Bi * Wi, Bs * Ws))
 
+    if iteration > 0:
+        A = scipy.sparse.vstack([A, get_aec(len(subject.vertices)) * Wc[iteration]], format="lil")
+        b = np.concatenate((b, get_bec(get_closest_points(kd_tree_target, result_verts.reshape((-1, 3))), target_mesh.vertices).flatten() * Wc[iteration]))
+
     #########################################################
     pbar_next("Enforcing Markers")
     for mark_src_i, mark_dest_i in markers:
@@ -159,12 +182,12 @@ for iteration in range(iterations):
     # result = psInv @ b
     # lsqr_result = lsqr(A, b)
     lsqr_result = lsqr(A.T @ A, A.T @ b)
-    result = lsqr_result[0]
+    result_verts = lsqr_result[0]
 
     #########################################################
     # Apply new vertices
-    pbar_next("Appling vertices")
-    vertices = result.reshape((-1, 3))[:len(original_source.vertices)]
+    pbar_next("Applying vertices")
+    vertices = result_verts.reshape((-1, 3))[:len(original_source.vertices)]
     result = meshlib.Mesh(vertices=vertices, faces=original_source.faces).to_fourth_dimension()
     # Enforce target vertices
     for mark_src_i, mark_dest_i in markers:
