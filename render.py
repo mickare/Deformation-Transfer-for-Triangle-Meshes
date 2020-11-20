@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import config
 from meshlib import Mesh
 from mathlib.vector import Vec3f
+from utils import tween
 
 ODict = Optional[Dict]
 
@@ -32,7 +33,8 @@ class BrowserVisualizer:
         )
 
     def addMesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
-        x, y, z = np.array(mesh.vertices.T[:3])
+        mesh = mesh.to_third_dimension(copy=False)
+        x, y, z = np.array(mesh.vertices.T)
         if offset is not None:
             x += offset[0]
             y += offset[1]
@@ -44,10 +46,12 @@ class BrowserVisualizer:
         return self
 
     def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                   **kwargs) -> "BrowserVisualizer":
+                   lines=False, **kwargs) -> "BrowserVisualizer":
         pts = np.asarray(points)
         if offset is not None:
             pts += offset
+        if not lines:
+            pts = np.asarray(tween(pts.tolist(), (np.nan, np.nan, np.nan)))
         x, y, z = pts.T
         self._data.append(go.Scatter3d(x=x, y=y, z=z, **kwargs))
         return self

@@ -173,7 +173,7 @@ for iteration in range(iterations):
     vis = BrowserVisualizer()
     vis.addMesh(subject)
     vis.addScatter(
-        tween(original_target.vertices.tolist(), (np.nan, np.nan, np.nan)),
+        original_target.vertices,
         marker=dict(
             color='red',
             size=3
