@@ -88,11 +88,13 @@ for iteration in range(iterations):
         pBar.update()
 
 
+    #########################################################
     # Create inverse of triangle spans
     pbar_next("Inverse Triangle Spans")
     invVs = np.linalg.inv(subject.span)
     assert len(subject.faces) == len(invVs)
 
+    #########################################################
     # Preparing the transformation matrices
     pbar_next("Preparing Transforms")
     transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
@@ -142,6 +144,7 @@ for iteration in range(iterations):
     A = scipy.sparse.vstack((AEi / math.sqrt(Wi), AEs / math.sqrt(Ws)), format="lil")
     b = np.concatenate((Bi, Bs))
 
+    #########################################################
     pbar_next("Enforcing Markers")
     for mark_src_i, mark_dest_i in markers:
         i = mark_src_i * 3
@@ -158,6 +161,7 @@ for iteration in range(iterations):
     lsqr_result = lsqr(A.T @ A, A.T @ b)
     result = lsqr_result[0]
 
+    #########################################################
     # Apply new vertices
     pbar_next("Appling vertices")
     vertices = result.reshape((-1, 3))[:len(original_source.vertices)]
