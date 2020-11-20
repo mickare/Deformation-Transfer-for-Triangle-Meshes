@@ -176,11 +176,33 @@ for iteration in range(iterations):
 
     vis = BrowserVisualizer()
     vis.add_mesh(subject)
+    vis.add_mesh(original_source, color="red", opacity=0.03)
+    vis.add_mesh(original_target, color="blue", opacity=0.03)
+    vis.add_scatter(
+        original_target.vertices[markers[:, 1]],
+        marker=dict(
+            color='yellow',
+            size=2,
+            opacity=0.9
+        ),
+        name="Marker Target"
+    )
+    vis.add_scatter(
+        original_source.vertices[markers[:, 0]],
+        marker=dict(
+            color='red',
+            size=2,
+            opacity=0.9
+        ),
+        name="Marker Source"
+    )
     vis.add_scatter(
         original_target.vertices,
         marker=dict(
-            color='red',
-            size=3
-        )
+            color='blue',
+            size=1,
+            opacity=0.2
+        ),
+        name="Vertex Target"
     )
     vis.show(renderer="browser")
