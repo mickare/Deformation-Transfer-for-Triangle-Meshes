@@ -1,3 +1,4 @@
+import itertools
 from typing import List, Sequence
 
 import numpy as np
@@ -21,20 +22,29 @@ subject = original_source.to_fourth_dimension()
 
 # Weights of cost functions
 Ws = 1.0
-Wi = 0.1
+Wi = 0.0001
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
 
-i = 0
-f = original_source.faces[0]
+# def is_adjacent_edge(a: np.ndarray, b: np.ndarray):
+#     return any(
+#         (a[list(perm)] == b).sum() == 2 for perm in itertools.permutations((0, 1, 2), 3)
+#     )
+#
+# adjacent_edges: List[List[int]] = [
+#     [j for j, o in enumerate(original_source.faces) if i != j and is_adjacent_edge(o, f)]
+#     for i, f in enumerate(original_source.faces)
+# ]
 
-adjacent: List[Sequence[int]] = [
+adjacent_vertices: List[List[int]] = [
     list(set(j
              for perm in ((0, 1, 2), (2, 0, 1), (1, 2, 0))
              for j in np.where(original_source.faces == f[list(perm)])[0]
              if j != i))
     for i, f in enumerate(original_source.faces)]
+
+adjacent = adjacent_vertices
 
 
 #
@@ -166,8 +176,8 @@ for iteration in range(iterations):
     # U, S, Vt = svds(A)
     # psInv = Vt.T @ np.linalg.inv(np.diag(S)) @ U.T
     # result = psInv @ b
-    # lsqr_result = lsqr(A, b)
-    lsqr_result = lsqr(A.T @ A, A.T @ b)
+    lsqr_result = lsqr(A, b)
+    # lsqr_result = lsqr(A.T @ A, A.T @ b)
     result = lsqr_result[0]
 
     #########################################################
