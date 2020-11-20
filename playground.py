@@ -141,8 +141,8 @@ for iteration in range(iterations):
 
     #########################################################
     pbar_next("Combining Costs")
-    A = scipy.sparse.vstack((AEi / math.sqrt(Wi), AEs / math.sqrt(Ws)), format="lil")
-    b = np.concatenate((Bi, Bs))
+    A = scipy.sparse.vstack((AEi * Wi, AEs * Ws), format="lil")
+    b = np.concatenate((Bi * Wi, Bs * Ws))
 
     #########################################################
     pbar_next("Enforcing Markers")
