@@ -1,6 +1,5 @@
-import math
-import sys
-from typing import List
+import itertools
+from typing import List, Sequence
 
 import numpy as np
 import scipy
@@ -10,9 +9,7 @@ from scipy.sparse.linalg import lsqr
 from scipy.spatial import KDTree
 
 import meshlib
-from discrete_mesh import TriangleSpanMesh
-from render import get_markers, BrowserVisualizer, MeshPlots
-from utils import tween
+from render import get_markers, BrowserVisualizer
 
 
 original_source = meshlib.Mesh.from_file_obj("models/lowpoly_cat/cat_reference.obj")
@@ -27,13 +24,35 @@ subject = original_source.to_fourth_dimension()
 
 # Weights of cost functions
 Ws = 1.0
-Wi = 0.1
+Wi = 0.001
 Wc = [1.0, 200.0, 1000.0, 5000.0]
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
-adjacent: List[List[int]] = [[j for j in np.where(subject.faces == f)[0] if j != i]
-                             for i, f in enumerate(subject.faces)]
+
+# def is_adjacent_edge(a: np.ndarray, b: np.ndarray):
+#     return any(
+#         (a[list(perm)] == b).sum() == 2 for perm in itertools.permutations((0, 1, 2), 3)
+#     )
+#
+# adjacent_edges: List[List[int]] = [
+#     [j for j, o in enumerate(original_source.faces) if i != j and is_adjacent_edge(o, f)]
+#     for i, f in enumerate(original_source.faces)
+# ]
+
+adjacent_vertices: List[List[int]] = [
+    list(set(j
+             for perm in ((0, 1, 2), (2, 0, 1), (1, 2, 0))
+             for j in np.where(original_source.faces == f[list(perm)])[0]
+             if j != i))
+    for i, f in enumerate(original_source.faces)]
+
+adjacent = adjacent_vertices
+
+
+#
+# for i, f in enumerate(original_source.faces):
+#     set(*(np.where(original_source.faces == f[perm]) for perm in np.itertools.permutations(range(3), 3)))
 
 
 def get_closest_points(kd_tree: KDTree, verts: np.array):
@@ -147,7 +166,7 @@ result_verts = 0
 # Start of loop
 
 iterations = 4
-total_steps = 9  # Steps per iteration
+total_steps = 5  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
 
@@ -180,8 +199,9 @@ for iteration in range(iterations):
     # U, S, Vt = svds(A)
     # psInv = Vt.T @ np.linalg.inv(np.diag(S)) @ U.T
     # result = psInv @ b
-    # lsqr_result = lsqr(A, b)
-    lsqr_result = lsqr(A.T @ A, A.T @ b)
+
+    lsqr_result = lsqr(A, b)
+    # lsqr_result = lsqr(A.T @ A, A.T @ b)
     result_verts = lsqr_result[0]
 
     #########################################################
@@ -197,25 +217,44 @@ for iteration in range(iterations):
     pbar_next("Rendering")
 
     vis = BrowserVisualizer()
-    vis.add_mesh(result)
-    vis.add_mesh(original_source, color="red", opacity=0.03)
-    vis.add_mesh(original_target, color="blue", opacity=0.03)
+    vis.add_mesh(result,
+                 name=f"Result {iteration}",
+                 text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 )
+    vis.add_mesh(original_source,
+                 name="Source",
+                 color="red",
+                 opacity=0.025,
+                 # text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 hoverinfo='skip',
+                 )
+    vis.add_mesh(original_target,
+                 name="Target",
+                 color="blue",
+                 opacity=0.025,
+                 # text=[f"<b>Vertex:</b> {n}" for n in range(len(original_target.vertices))]
+                 hoverinfo='skip',
+                 )
     vis.add_scatter(
         original_target.vertices[markers[:, 1]],
         marker=dict(
             color='yellow',
-            size=2,
-            opacity=0.9
+            size=3,
+            opacity=0.9,
+            symbol='x',
         ),
+        text=[f"<b>Index:</b> {t}" for s, t in markers],
         name="Marker Target"
     )
     vis.add_scatter(
         original_source.vertices[markers[:, 0]],
         marker=dict(
             color='red',
-            size=2,
-            opacity=0.9
+            size=3,
+            opacity=0.9,
+            symbol='x',
         ),
+        text=[f"<b>Index:</b> {s}" for s, t in markers],
         name="Marker Source"
     )
     vis.add_scatter(
@@ -223,7 +262,7 @@ for iteration in range(iterations):
         marker=dict(
             color='blue',
             size=1,
-            opacity=0.2
+            opacity=0.2,
         ),
         name="Vertex Target"
     )

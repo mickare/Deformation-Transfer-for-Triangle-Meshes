@@ -42,7 +42,7 @@ hovertemplate = """
 %{text}
 """
 mesh_kwargs = dict(
-    color="gray",
+    color='gray',
     flatshading=True,
     lighting=dict(
         ambient=0.1,
@@ -58,7 +58,7 @@ mesh_kwargs = dict(
         z=5000
     ),
     hovertemplate=hovertemplate,
-    opacity=0.4,
+    opacity=0.5,
 )
 
 colorwheel = [
@@ -80,13 +80,15 @@ target_rotated = target.transpose((0, 2, 1))
 fig.add_trace(
     BrowserVisualizer.make_scatter(
         source_rotated.vertices[markers[:, 0]],
+        mode="text+markers",
         marker=dict(
             color=[getColor(n) for n in range(len(markers))],
             size=3,
+            symbol='x',
         ),
-        text=[f"""
-<b>Index:</b> {n}
-""" for n in markers[:, 0]],
+        hovertemplate=hovertemplate,
+        text=[f"<b>Index:</b> {s}" for s, t in markers],
+        name="Marker Source",
     ),
     row=1,
     col=1
@@ -94,13 +96,41 @@ fig.add_trace(
 fig.add_trace(
     BrowserVisualizer.make_scatter(
         target_rotated.vertices[markers[:, 1]],
+        mode="text+markers",
         marker=dict(
             color=[getColor(n) for n in range(len(markers))],
             size=3,
+            symbol='x',
         ),
-        text=[f"""
-<b>Index:</b> {n}
-""" for n in markers[:, 1]],
+        hovertemplate=hovertemplate,
+        text=[f"<b>Index:</b> {t}" for s, t in markers],
+        name="Marker Target",
+    ),
+    row=1,
+    col=2
+)
+
+# Plot Vertex
+fig.add_trace(
+    BrowserVisualizer.make_scatter(
+        source_rotated.vertices,
+        mode="markers",
+        marker=dict(color='red', size=1, ),
+        hovertemplate=hovertemplate,
+        text=[f"<b>Vertex:</b> {n}" for n in range(len(source_rotated.vertices))],
+        name="Vertex Source",
+    ),
+    row=1,
+    col=1
+)
+fig.add_trace(
+    BrowserVisualizer.make_scatter(
+        target_rotated.vertices,
+        mode="markers",
+        marker=dict(color='blue', size=1, ),
+        hovertemplate=hovertemplate,
+        text=[f"<b>Vertex:</b> {n}" for n in range(len(target_rotated.vertices))],
+        name="Vertex Target",
     ),
     row=1,
     col=2
@@ -110,9 +140,8 @@ fig.add_trace(
 fig.add_trace(
     BrowserVisualizer.make_mesh(
         source_rotated,
-        text=[f"""
-<b>Index:</b> {n}
-""" for n in range(len(source.vertices))],
+        text=[f"<b>Vertex:</b> {n}" for n in range(len(source_rotated.vertices))],
+        name="Source",
         **mesh_kwargs,
     ),
     row=1,
@@ -121,9 +150,8 @@ fig.add_trace(
 fig.add_trace(
     BrowserVisualizer.make_mesh(
         target_rotated,
-        text=[f"""
-<b>Vertex:</b> {n}
-""" for n in range(len(target.vertices))],
+        text=[f"<b>Vertex:</b> {n}" for n in range(len(target_rotated.vertices))],
+        name="Target",
         **mesh_kwargs,
     ),
     row=1,

@@ -33,39 +33,50 @@ class BrowserVisualizer:
         )
 
     @classmethod
-    def make_mesh(cls, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs):
-        mesh = mesh.to_third_dimension(copy=False)
-        x, y, z = np.array(mesh.vertices.T)
-        if offset is not None:
-            x += offset[0]
-            y += offset[1]
-            z += offset[2]
-        vx, vy, vz = mesh.faces.T
-        return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **kwargs)
+    def make_mesh(cls, mesh: Mesh, offset: Optional[Vec3f] = None, heatmap=False, intensity=None, **kwargs):
+        if heatmap and mesh.is_fourth_dimension():
+            x, y, z = np.array(mesh.vertices.T)
+            if offset is not None:
+                x += offset[0]
+                y += offset[1]
+                z += offset[2]
+            vx, vy, vz, vv4 = mesh.faces.T
+            intensity = intensity or np.linalg.norm(mesh.vertices[vv4], axis=1)
+            return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz,
+                             intensity=intensity,
+                             intensitymode="cell",
+                             **kwargs)
+        else:
+            mesh = mesh.to_third_dimension(copy=False)
+            x, y, z = np.array(mesh.vertices.T)
+            if offset is not None:
+                x += offset[0]
+                y += offset[1]
+                z += offset[2]
+            vx, vy, vz = mesh.faces.T
+            return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **kwargs)
 
-    def add_mesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
+    def add_mesh(self, mesh: Mesh, *args, **kwargs) -> "BrowserVisualizer":
         mkwargs = dict(self.mesh_kwargs)
         mkwargs.update(kwargs)
-        self._data.append(self.make_mesh(mesh, offset, **mkwargs))
+        self._data.append(self.make_mesh(mesh, *args, **mkwargs))
         return self
 
     @classmethod
-    def make_scatter(cls, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                     lines=False, **kwargs):
+    def make_scatter(cls, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None, **kwargs):
         kwargs.setdefault("marker", {})
         kwargs["marker"].setdefault("size", 0.1)
+        kwargs.setdefault("mode", "markers")
 
         pts = np.asarray(points)
         if offset is not None:
             pts += offset
-        if not lines:
-            pts = np.asarray(tween(pts.tolist(), (np.nan, np.nan, np.nan)))
         x, y, z = pts.T
         return go.Scatter3d(x=x, y=y, z=z, **kwargs)
 
     def add_scatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                    lines=False, **kwargs) -> "BrowserVisualizer":
-        self._data.append(self.make_scatter(points, offset, lines, **kwargs))
+                    **kwargs) -> "BrowserVisualizer":
+        self._data.append(self.make_scatter(points, offset, **kwargs))
         return self
 
     def show(self, camera: ODict = None, **kwargs) -> None:

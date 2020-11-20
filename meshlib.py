@@ -93,8 +93,14 @@ class Mesh:
     def v1(self):
         return self.vertices[self.faces[:, 0]]
 
+    def get_dimension(self) -> int:
+        return self.faces.shape[1]
+
+    def is_fourth_dimension(self) -> bool:
+        return self.get_dimension() == 4
+
     def to_fourth_dimension(self, copy=True) -> "Mesh":
-        if self.faces.shape[1] == 4:
+        if self.is_fourth_dimension():
             if copy:
                 return Mesh(np.copy(self.vertices), np.copy(self.faces))
             else:
@@ -108,8 +114,11 @@ class Mesh:
         new_faces = np.concatenate((self.faces, v4_indices.reshape((-1, 1))), axis=1)
         return Mesh(new_vertices, new_faces)
 
+    def is_third_dimension(self) -> bool:
+        return self.faces.shape[1] == 3
+
     def to_third_dimension(self, copy=True) -> "Mesh":
-        if self.faces.shape[1] == 3:
+        if self.is_third_dimension():
             if copy:
                 return Mesh(np.copy(self.vertices), np.copy(self.faces))
             else:
