@@ -18,8 +18,8 @@ original_target = meshlib.Mesh.from_file_obj("models/lowpoly_dog/dog_reference.o
 markers = get_markers()  # cat, dog
 # markers = np.transpose((markers[:, 0], markers[:, 0]))
 
-target_mesh = TriangleSpanMesh.from_mesh(original_target)
-subject = TriangleSpanMesh.from_mesh(original_source)
+target_mesh = original_target.to_fourth_dimension()
+subject = original_source.to_fourth_dimension()
 # Show the source and target
 # MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
 
@@ -162,7 +162,7 @@ for iteration in range(iterations):
     pbar_next("Appling vertices")
     vertices = result.reshape((-1, 3))[:len(original_source.vertices)]
     old_subject = subject
-    subject = TriangleSpanMesh.from_parts(vertices=vertices, faces=original_source.faces)
+    subject = meshlib.Mesh(vertices=vertices, faces=original_source.faces).to_fourth_dimension()
     # Enforce target vertices
     for mark_src_i, mark_dest_i in markers:
         subject.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
@@ -171,7 +171,7 @@ for iteration in range(iterations):
     pbar_next("Rendering")
 
     vis = BrowserVisualizer()
-    vis.addMesh(subject.to_mesh())
+    vis.addMesh(subject)
     vis.addScatter(
         tween(original_target.vertices.tolist(), (np.nan, np.nan, np.nan)),
         marker=dict(

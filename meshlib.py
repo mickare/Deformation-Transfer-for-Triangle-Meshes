@@ -75,6 +75,51 @@ class Mesh:
         """
         self.vertices += offset
 
+    @property
+    def span(self) -> np.ndarray:
+        """
+        Calculates the triangle spans of each surface with the offset v1
+        :return:
+            triangles Nx3x3
+        """
+        v1, v2, v3 = self.vertices[self.faces].transpose((1, 0, 2))[:3]
+        a = v2 - v1
+        b = v3 - v1
+        tmp = np.cross(a, b)
+        c = (tmp.T / np.sqrt(np.linalg.norm(tmp, axis=1))).T
+        return np.transpose((a, b, c), (1, 0, 2))
+
+    @property
+    def v1(self):
+        return self.vertices[self.faces[:, 0]]
+
+    def to_fourth_dimension(self, copy=True) -> "Mesh":
+        if self.faces.shape[1] == 4:
+            if copy:
+                return Mesh(np.copy(self.vertices), np.copy(self.faces))
+            else:
+                return self
+
+        assert self.vertices.shape[1] == 3, f"Some strange error occurred! vertices.shape = {self.vertices.shape}"
+        c = self.span[:, 2]
+        v4 = self.v1 + c
+        new_vertices = np.concatenate((self.vertices, v4), axis=0)
+        v4_indices = np.arange(len(self.vertices), len(self.vertices) + len(c))
+        new_faces = np.concatenate((self.faces, v4_indices.reshape((-1, 1))), axis=1)
+        return Mesh(new_vertices, new_faces)
+
+    def to_third_dimension(self, copy=True) -> "Mesh":
+        if self.faces.shape[1] == 3:
+            if copy:
+                return Mesh(np.copy(self.vertices), np.copy(self.faces))
+            else:
+                return self
+
+        assert self.vertices.shape[1] == 3, f"Some strange error occurred! vertices.shape = {self.vertices.shape}"
+        new_faces = self.faces[:, :3]
+        new_vertices = self.vertices[:np.max(new_faces) + 1]
+        return Mesh(new_vertices, new_faces)
+
 
 class MeshAdaption:
     def __init__(self, transform: np.ndarray):
