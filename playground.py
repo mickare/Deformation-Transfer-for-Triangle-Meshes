@@ -24,8 +24,8 @@ subject = original_source.to_fourth_dimension()
 # MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
 
 # Weights of cost functions
-Ws = 100.0
-Wi = 0.001
+Ws = 1.0
+Wi = 0.1
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
