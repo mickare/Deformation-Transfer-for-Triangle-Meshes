@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Sequence
 
 import numpy as np
 import scipy
@@ -25,8 +25,21 @@ Wi = 0.1
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
-adjacent: List[List[int]] = [[j for j in np.where(subject.faces == f)[0] if j != i]
-                             for i, f in enumerate(subject.faces)]
+
+i = 0
+f = original_source.faces[0]
+
+adjacent: List[Sequence[int]] = [
+    list(set(j
+             for perm in ((0, 1, 2), (2, 0, 1), (1, 2, 0))
+             for j in np.where(original_source.faces == f[list(perm)])[0]
+             if j != i))
+    for i, f in enumerate(original_source.faces)]
+
+
+#
+# for i, f in enumerate(original_source.faces):
+#     set(*(np.where(original_source.faces == f[perm]) for perm in np.itertools.permutations(range(3), 3)))
 
 
 class TransformEntry:
