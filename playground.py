@@ -1,28 +1,30 @@
+import math
+import sys
 from typing import List
 
 import numpy as np
 import scipy
+import tqdm
 from scipy.sparse import dok_matrix, lil_matrix
 from scipy.sparse.linalg import lsqr
 
 import meshlib
 from discrete_mesh import TriangleSpanMesh
-from render import get_markers, BrowserVisualizer
+from render import get_markers, BrowserVisualizer, MeshPlots
 from utils import tween
 
-cat = "models/lowpoly_cat/cat_reference.obj"
-dog = "models/lowpoly_dog/dog_reference.obj"
-
-original_source = meshlib.Mesh.from_file_obj(cat)
-original_target = meshlib.Mesh.from_file_obj(dog)
+original_source = meshlib.Mesh.from_file_obj("models/lowpoly_cat/cat_reference.obj")
+original_target = meshlib.Mesh.from_file_obj("models/lowpoly_dog/dog_reference.obj")
 markers = get_markers()  # cat, dog
 # markers = np.transpose((markers[:, 0], markers[:, 0]))
 
 target_mesh = TriangleSpanMesh.from_mesh(original_target)
 subject = TriangleSpanMesh.from_mesh(original_source)
+# Show the source and target
+# MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
 
 # Weights of cost functions
-Ws = 1.0
+Ws = 100.0
 Wi = 0.001
 
 # Precalculate the adjacent triangles in source
@@ -74,94 +76,107 @@ class TransformEntry:
 #########################################################
 # Start of loop
 
-# Create inverse of triangle spans
-print("Inverse Triangle Spans")
-invVs = np.linalg.inv(subject.span)
-assert len(subject.faces) == len(invVs)
+iterations = 3
+total_steps = 9  # Steps per iteration
+# Progress bar
+pBar = tqdm.tqdm(total=iterations * total_steps)
 
-# Preparing the transformation matrices
-print("Preparing Transforms")
-transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
+for iteration in range(iterations):
 
-#########################################################
-# Identity Cost - of transformations
-print("Building Identity Cost")
-Bi = np.tile(np.identity(3, dtype=np.float).flatten(), len(subject.faces))
-AEi = lil_matrix(
-    (
-        # Count of all minimization terms
-        len(subject.faces) * 9,
-        # Length of flat result x
-        len(subject.vertices) * 3
-    ),
-    dtype=np.float
-)
-assert AEi.shape[0] == len(Bi)
-for index, Ti in enumerate(transforms):  # type: int, (np.ndarray, np.ndarray)
-    Ti.insert_to(AEi, row=index * 9)
+    def pbar_next(msg: str):
+        pBar.set_description(f"[{iteration + 1}/{iterations}] {msg}")
+        pBar.update()
 
-#########################################################
-# Smoothness Cost - of differences to adjacent transformations
-print("Building Smoothness Cost")
-count_adjacent = sum(len(a) for a in adjacent)
-Bs = np.zeros(count_adjacent * 9)
-AEs = lil_matrix(
-    (
-        # Count of all minimization terms
-        count_adjacent * 9,
-        # Length of flat result x
-        len(subject.vertices) * 3
-    ),
-    dtype=np.float
-)
-assert AEs.shape[0] == len(Bs)
-row = 0
-for index, Ti in enumerate(transforms):  # type: int, (np.ndarray, np.ndarray)
-    for adj in adjacent[index]:
-        Ti.insert_to(AEs, row)
-        transforms[adj].insert_to(AEs, row, -1.0)
-        row += 1
-assert row == count_adjacent
 
-#########################################################
-print("Combining Costs")
-A = scipy.sparse.vstack((AEi, AEs), format="lil")
-b = np.concatenate((Wi * Bi, Ws * Bs))
+    # Create inverse of triangle spans
+    pbar_next("Inverse Triangle Spans")
+    invVs = np.linalg.inv(subject.span)
+    assert len(subject.faces) == len(invVs)
 
-print("Enforcing Markers")
-for mark_src_i, mark_dest_i in markers:
-    i = mark_src_i * 3
-    valueB = Atmp[:, i:i + 3] @ target_mesh.vertices[mark_dest_i]
-    b -= valueB
-    Atmp[:, i:i + 3] = 0
+    # Preparing the transformation matrices
+    pbar_next("Preparing Transforms")
+    transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
 
-#########################################################
-print("Solving")
-# U, S, Vt = svds(A)
-# psInv = Vt.T @ np.linalg.inv(np.diag(S)) @ U.T
-# result = psInv @ b
-lsqr_result = lsqr(A, b)
-result = lsqr_result[0]
-
-# Apply new vertices
-print("Appling vertices")
-vertices = result.reshape((-1, 3))
-old_subject = subject
-subject = TriangleSpanMesh.from_parts(vertices=vertices, faces=original_source.faces)
-# Enforce target vertices
-for mark_src_i, mark_dest_i in markers:
-    subject.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
-
-#########################################################
-print("Rendering")
-
-vis = BrowserVisualizer()
-vis.addMesh(subject.to_mesh())
-vis.addScatter(
-    tween(original_target.vertices.tolist(), (np.nan, np.nan, np.nan)),
-    marker=dict(
-        color='red',
-        size=3
+    #########################################################
+    # Identity Cost - of transformations
+    pbar_next("Building Identity Cost")
+    Bi = np.tile(np.identity(3, dtype=np.float).flatten(), len(subject.faces))
+    AEi = lil_matrix(
+        (
+            # Count of all minimization terms
+            len(subject.faces) * 9,
+            # Length of flat result x
+            len(subject.vertices) * 3
+        ),
+        dtype=np.float
     )
-)
-vis.show()
+    assert AEi.shape[0] == len(Bi)
+    for index, Ti in enumerate(transforms):  # type: int, (np.ndarray, np.ndarray)
+        Ti.insert_to(AEi, row=index * 9)
+
+    #########################################################
+    # Smoothness Cost - of differences to adjacent transformations
+    pbar_next("Building Smoothness Cost")
+    count_adjacent = sum(len(a) for a in adjacent)
+    Bs = np.zeros(count_adjacent * 9)
+    AEs = lil_matrix(
+        (
+            # Count of all minimization terms
+            count_adjacent * 9,
+            # Length of flat result x
+            len(subject.vertices) * 3
+        ),
+        dtype=np.float
+    )
+    assert AEs.shape[0] == len(Bs)
+    row = 0
+    for index, Ti in enumerate(transforms):  # type: int, (np.ndarray, np.ndarray)
+        for adj in adjacent[index]:
+            Ti.insert_to(AEs, row)
+            transforms[adj].insert_to(AEs, row, -1.0)
+            row += 9
+    assert row == AEs.shape[0]
+
+    #########################################################
+    pbar_next("Combining Costs")
+    A = scipy.sparse.vstack((AEi / math.sqrt(Wi), AEs / math.sqrt(Ws)), format="lil")
+    b = np.concatenate((Bi, Bs))
+
+    pbar_next("Enforcing Markers")
+    for mark_src_i, mark_dest_i in markers:
+        i = mark_src_i * 3
+        valueB = A[:, i:i + 3] @ target_mesh.vertices[mark_dest_i]
+        b -= valueB
+        A[:, i:i + 3] = 0
+
+    #########################################################
+    pbar_next("Solving")
+    # U, S, Vt = svds(A)
+    # psInv = Vt.T @ np.linalg.inv(np.diag(S)) @ U.T
+    # result = psInv @ b
+    # lsqr_result = lsqr(A, b)
+    lsqr_result = lsqr(A.T @ A, A.T @ b)
+    result = lsqr_result[0]
+
+    # Apply new vertices
+    pbar_next("Appling vertices")
+    vertices = result.reshape((-1, 3))[:len(original_source.vertices)]
+    old_subject = subject
+    subject = TriangleSpanMesh.from_parts(vertices=vertices, faces=original_source.faces)
+    # Enforce target vertices
+    for mark_src_i, mark_dest_i in markers:
+        subject.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
+
+    #########################################################
+    pbar_next("Rendering")
+
+    vis = BrowserVisualizer()
+    vis.addMesh(subject.to_mesh())
+    vis.addScatter(
+        tween(original_target.vertices.tolist(), (np.nan, np.nan, np.nan)),
+        marker=dict(
+            color='red',
+            size=3
+        )
+    )
+    vis.show(renderer="browser")
