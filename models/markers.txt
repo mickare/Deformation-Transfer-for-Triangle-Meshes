@@ -1,9 +1,13 @@
 #source target
 #cat dog
 80 267 # front left foot
+78 278 # front left foot (inner)
 284 33 # front right foot
-59 294 # back left foot
-263 60 # back right foot
+282 44 # front right foot (inner)
+59 295 # back left foot
+60 319 # back left foot (inner)
+263 61 # back right foot
+264 85 # back right foot (inner)
 160 398 # back left knee
 383 151 # back right knee
 183 219 # belly
