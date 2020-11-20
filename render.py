@@ -32,7 +32,8 @@ class BrowserVisualizer:
             z=5000
         )
 
-    def addMesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
+    @classmethod
+    def make_mesh(cls, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs):
         mesh = mesh.to_third_dimension(copy=False)
         x, y, z = np.array(mesh.vertices.T)
         if offset is not None:
@@ -40,20 +41,31 @@ class BrowserVisualizer:
             y += offset[1]
             z += offset[2]
         vx, vy, vz = mesh.faces.T
+        return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **kwargs)
+
+    def add_mesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
         mkwargs = dict(self.mesh_kwargs)
         mkwargs.update(kwargs)
-        self._data.append(go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **mkwargs))
+        self._data.append(self.make_mesh(mesh, offset, **mkwargs))
         return self
 
-    def addScatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
-                   lines=False, **kwargs) -> "BrowserVisualizer":
+    @classmethod
+    def make_scatter(cls, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
+                     lines=False, **kwargs):
+        kwargs.setdefault("marker", {})
+        kwargs["marker"].setdefault("size", 0.1)
+
         pts = np.asarray(points)
         if offset is not None:
             pts += offset
         if not lines:
             pts = np.asarray(tween(pts.tolist(), (np.nan, np.nan, np.nan)))
         x, y, z = pts.T
-        self._data.append(go.Scatter3d(x=x, y=y, z=z, **kwargs))
+        return go.Scatter3d(x=x, y=y, z=z, **kwargs)
+
+    def add_scatter(self, points: Union[np.ndarray, Sequence[Vec3f]], offset: Optional[Vec3f] = None,
+                    lines=False, **kwargs) -> "BrowserVisualizer":
+        self._data.append(self.make_scatter(points, offset, lines, **kwargs))
         return self
 
     def show(self, camera: ODict = None, **kwargs) -> None:
@@ -86,30 +98,9 @@ class MeshPlots:
         offset = np.zeros(3)
         for m in meshes:
             size = m.size()[axis]
-            vis.addMesh(m, offset=offset)
+            vis.add_mesh(m, offset=offset)
             offset += (0, 0, size + spacing)
         return vis
-
-
-def plot_example1():
-    """Simple example plot showing both a cat and a dog"""
-    cat_path = "models/lowpoly_cat/cat_reference.obj"
-    dog_path = "models/lowpoly_dog/dog_reference.obj"
-
-    cat = Mesh.from_file_obj(cat_path)
-    dog = Mesh.from_file_obj(dog_path)
-
-    vis = BrowserVisualizer()
-    vis.addMesh(cat, offset=(0, 0, cat.size()[2] + dog.size()[2]))
-    vis.addMesh(dog)
-    vis.addScatter(
-        dog.vertices,
-        marker=dict(
-            color='red',
-            size=3
-        )
-    )
-    vis.show()
 
 
 def plot_example2():
@@ -122,8 +113,8 @@ def plot_example2():
 
     cat_index_label = [f"index: {i}" for i, v in enumerate(cat.vertices)]
     vis = BrowserVisualizer()
-    vis.addMesh(cat, hovertext=cat_index_label)
-    vis.addScatter(
+    vis.add_mesh(cat, hovertext=cat_index_label)
+    vis.add_scatter(
         cat.vertices,
         marker=dict(
             color='red',
@@ -135,8 +126,8 @@ def plot_example2():
 
     dog_index_label = [f"index: {i}" for i, v in enumerate(dog.vertices)]
     vis = BrowserVisualizer()
-    vis.addMesh(dog, hovertext=dog_index_label)
-    vis.addScatter(
+    vis.add_mesh(dog, hovertext=dog_index_label)
+    vis.add_scatter(
         dog.vertices,
         marker=dict(
             color='red',
@@ -170,12 +161,37 @@ def plot_example_markers():
         cat.vertices[m[0]][2] = dog.vertices[m[1]][2]
 
     vis = BrowserVisualizer()
-    vis.addMesh(cat)
-    vis.addScatter(
+    vis.add_mesh(cat)
+    vis.add_scatter(
         cat.vertices,
         marker=dict(
-            color='red',
-            size=3
+            color=np.random.choice(len(cat.vertices), replace=False),
+            colorscale='Viridis',
+            size=2,
+        )
+    )
+    vis.show()
+
+
+def plot_example1():
+    """Simple example plot showing both a cat and a dog"""
+    cat_path = "models/lowpoly_cat/cat_reference.obj"
+    dog_path = "models/lowpoly_dog/dog_reference.obj"
+
+    cat = Mesh.from_file_obj(cat_path)
+    dog = Mesh.from_file_obj(dog_path)
+
+    vis = BrowserVisualizer()
+    vis.add_mesh(cat, offset=(0, 0, cat.size()[2] + dog.size()[2]))
+    vis.add_mesh(dog)
+    vis.add_scatter(
+        dog.vertices,
+        marker=dict(
+            # color=np.random.choice(len(dog.vertices), len(dog.vertices), replace=False),
+            # color=np.sin(np.linalg.norm(dog.vertices, axis=1) * 100),
+            color=np.sin(np.arange(len(dog.vertices))),
+            colorscale='Viridis',
+            size=2,
         )
     )
     vis.show()

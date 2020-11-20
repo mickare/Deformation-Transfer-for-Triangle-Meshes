@@ -35,8 +35,8 @@ def example_discrete_mesh_rotation(file="models/lowpoly_cat/cat_reference.obj"):
     dmesh.span = np.array([Vector3D.apply(tri, rot) for tri in dmesh.span])
 
     vis = BrowserVisualizer()
-    vis.addMesh(dmesh.to_mesh())
-    vis.addScatter(
+    vis.add_mesh(dmesh.to_mesh())
+    vis.add_scatter(
         cat.vertices,
         marker=dict(
             color='red',

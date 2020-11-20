@@ -175,8 +175,8 @@ for iteration in range(iterations):
     pbar_next("Rendering")
 
     vis = BrowserVisualizer()
-    vis.addMesh(subject)
-    vis.addScatter(
+    vis.add_mesh(subject)
+    vis.add_scatter(
         original_target.vertices,
         marker=dict(
             color='red',
