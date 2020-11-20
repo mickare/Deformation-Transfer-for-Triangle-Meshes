@@ -33,20 +33,33 @@ class BrowserVisualizer:
         )
 
     @classmethod
-    def make_mesh(cls, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs):
-        mesh = mesh.to_third_dimension(copy=False)
-        x, y, z = np.array(mesh.vertices.T)
-        if offset is not None:
-            x += offset[0]
-            y += offset[1]
-            z += offset[2]
-        vx, vy, vz = mesh.faces.T
-        return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **kwargs)
+    def make_mesh(cls, mesh: Mesh, offset: Optional[Vec3f] = None, heatmap=False, intensity=None, **kwargs):
+        if heatmap and mesh.is_fourth_dimension():
+            x, y, z = np.array(mesh.vertices.T)
+            if offset is not None:
+                x += offset[0]
+                y += offset[1]
+                z += offset[2]
+            vx, vy, vz, vv4 = mesh.faces.T
+            intensity = intensity or np.linalg.norm(mesh.vertices[vv4], axis=1)
+            return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz,
+                             intensity=intensity,
+                             intensitymode="cell",
+                             **kwargs)
+        else:
+            mesh = mesh.to_third_dimension(copy=False)
+            x, y, z = np.array(mesh.vertices.T)
+            if offset is not None:
+                x += offset[0]
+                y += offset[1]
+                z += offset[2]
+            vx, vy, vz = mesh.faces.T
+            return go.Mesh3d(x=x, y=y, z=z, i=vx, j=vy, k=vz, **kwargs)
 
-    def add_mesh(self, mesh: Mesh, offset: Optional[Vec3f] = None, **kwargs) -> "BrowserVisualizer":
+    def add_mesh(self, mesh: Mesh, *args, **kwargs) -> "BrowserVisualizer":
         mkwargs = dict(self.mesh_kwargs)
         mkwargs.update(kwargs)
-        self._data.append(self.make_mesh(mesh, offset, **mkwargs))
+        self._data.append(self.make_mesh(mesh, *args, **mkwargs))
         return self
 
     @classmethod
