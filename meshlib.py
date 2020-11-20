@@ -120,6 +120,14 @@ class Mesh:
         new_vertices = self.vertices[:np.max(new_faces) + 1]
         return Mesh(new_vertices, new_faces)
 
+    def transpose(self, shape=(0, 1, 2)):
+        shape = np.asarray(shape)
+        assert shape.shape == (3,)
+        return Mesh(
+            vertices=self.vertices[:, shape],
+            faces=self.faces
+        )
+
 
 class MeshAdaption:
     def __init__(self, transform: np.ndarray):
