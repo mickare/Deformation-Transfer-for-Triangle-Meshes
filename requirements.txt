@@ -3,3 +3,4 @@ scipy
 PyWavefront
 plotly
 tqdm
+PyYAML

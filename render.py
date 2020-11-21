@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import config
 from meshlib import Mesh
 from mathlib.vector import Vec3f
-from utils import tween
 
 ODict = Optional[Dict]
 
@@ -116,8 +115,8 @@ class MeshPlots:
 
 def plot_example2():
     """Simple example plot showing both a cat and a dog"""
-    cat_path = "models/lowpoly_cat/cat_reference.obj"
-    dog_path = "models/lowpoly_dog/dog_reference.obj"
+    cat_path = "models/lowpoly/cat/cat_reference.obj"
+    dog_path = "models/lowpoly/dog/dog_reference.obj"
 
     cat = Mesh.from_file_obj(cat_path)
     dog = Mesh.from_file_obj(dog_path)
@@ -149,24 +148,13 @@ def plot_example2():
     vis.show()
 
 
-def get_markers():
-    markers = []
-    with open(config.markers, 'r') as f:
-        for line in f:
-            if line[0] == "#":
-                continue
-            m = line.split(' ')
-            markers.append((int(m[0]), int(m[1])))
-    return np.array(markers)
-
-
 def plot_example_markers():
     """Check if markers are correct"""
 
     cat = Mesh.from_file_obj(config.source_reference)
     dog = Mesh.from_file_obj(config.target_reference)
 
-    for m in get_markers():
+    for m in config.markers:
         cat.vertices[m[0]][0] = dog.vertices[m[1]][0]
         cat.vertices[m[0]][1] = dog.vertices[m[1]][1]
         cat.vertices[m[0]][2] = dog.vertices[m[1]][2]
@@ -186,8 +174,8 @@ def plot_example_markers():
 
 def plot_example1():
     """Simple example plot showing both a cat and a dog"""
-    cat_path = "models/lowpoly_cat/cat_reference.obj"
-    dog_path = "models/lowpoly_dog/dog_reference.obj"
+    cat_path = "models/lowpoly/cat/cat_reference.obj"
+    dog_path = "models/lowpoly/dog/dog_reference.obj"
 
     cat = Mesh.from_file_obj(cat_path)
     dog = Mesh.from_file_obj(dog_path)

@@ -1,15 +1,12 @@
-import numpy as np
-from _plotly_utils.colors import cyclical
-
 from plotly.subplots import make_subplots
 
 import config
 from meshlib import Mesh
-from render import get_markers, BrowserVisualizer
+from render import BrowserVisualizer
 
 source = Mesh.from_file_obj(config.source_reference)
 target = Mesh.from_file_obj(config.target_reference)
-markers = get_markers()
+markers = config.markers
 
 fig = make_subplots(
     rows=1, cols=2,

@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Tuple, List
 
@@ -40,6 +41,7 @@ class Mesh:
         :param kwargs:
         :return:
         """
+        assert os.path.isfile(file), f"Mesh file is missing: {file}"
         kwargs.setdefault("encoding", "UTF-8")
         return cls.from_pywavefront(pywavefront.Wavefront(file, collect_faces=True, **kwargs))
 

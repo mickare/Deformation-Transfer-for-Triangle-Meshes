@@ -1,0 +1,78 @@
+source:
+  reference: cat/cat_reference.obj
+  poses:
+    - cat/animation/cat_000001.obj
+    - cat/animation/cat_000002.obj
+    - cat/animation/cat_000003.obj
+    - cat/animation/cat_000004.obj
+    - cat/animation/cat_000005.obj
+    - cat/animation/cat_000006.obj
+    - cat/animation/cat_000007.obj
+    - cat/animation/cat_000008.obj
+    - cat/animation/cat_000009.obj
+    - cat/animation/cat_000010.obj
+    - cat/animation/cat_000011.obj
+    - cat/animation/cat_000012.obj
+    - cat/animation/cat_000013.obj
+    - cat/animation/cat_000014.obj
+    - cat/animation/cat_000015.obj
+    - cat/animation/cat_000016.obj
+    - cat/animation/cat_000017.obj
+    - cat/animation/cat_000018.obj
+    - cat/animation/cat_000019.obj
+    - cat/animation/cat_000020.obj
+    - cat/animation/cat_000021.obj
+    - cat/animation/cat_000022.obj
+    - cat/animation/cat_000023.obj
+    - cat/animation/cat_000024.obj
+    - cat/animation/cat_000025.obj
+    - cat/animation/cat_000026.obj
+    - cat/animation/cat_000027.obj
+    - cat/animation/cat_000028.obj
+    - cat/animation/cat_000029.obj
+    - cat/animation/cat_000030.obj
+    - cat/animation/cat_000031.obj
+    - cat/animation/cat_000032.obj
+    - cat/animation/cat_000033.obj
+    - cat/animation/cat_000034.obj
+    - cat/animation/cat_000035.obj
+    - cat/animation/cat_000036.obj
+
+target:
+  reference: dog/dog_reference.obj
+  # Target poses just for reference
+  poses:
+
+markers:
+  - "80:267"  # front left foot
+  - "78:278"  # front left foot (inner)
+  - "284:33"  # front right foot
+  - "282:44"  # front right foot (inner)
+  - "59:295"  # back left foot
+  - "60:319"  # back left foot (inner)
+  - "263:61"  # back right foot
+  - "264:85"  # back right foot (inner)
+  - "160:398" # back left knee
+  - "383:151" # back right knee
+  - "183:219" # belly
+  - "6:244"   # left back leg to belly
+  - "209:10"  # right back leg to belly
+  - "14:238"  # left front leg to belly
+  - "217:4"   # right front leg to belly
+  - "180:414" # tail start upper
+  - "346:415" # tail start lower
+  - "371:427" # tail tip
+  - "353:422" # tail mid upper
+  - "354:421" # tail mid lower
+  - "182:223" # lower back
+  - "188:220" # shoulders
+  - "194:467" # top of head
+  - "133:470" # left ear tip
+  - "341:203" # right ear tip
+  - "23:469"  # outer ear left
+  - "226:202" # outer ear right
+  - "25:454"  # left eye
+  - "228:189" # right eye
+  - "330:342" # nose
+  - "123:327" # left jaw
+  - "331:91"  # right jaw
