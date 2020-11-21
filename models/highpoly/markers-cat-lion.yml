@@ -1,0 +1,29 @@
+source:
+  reference: cat-poses/cat-reference.obj
+  poses:
+    - cat-poses/cat-01.obj
+    - cat-poses/cat-02.obj
+    - cat-poses/cat-03.obj
+    - cat-poses/cat-04.obj
+    - cat-poses/cat-05.obj
+    - cat-poses/cat-06.obj
+    - cat-poses/cat-07.obj
+    - cat-poses/cat-08.obj
+    - cat-poses/cat-09.obj
+
+target:
+  reference: lion-poses/lion-reference.obj
+  # Target poses just for reference
+  poses:
+    - lion-poses/lion-01.obj
+    - lion-poses/lion-02.obj
+    - lion-poses/lion-03.obj
+    - lion-poses/lion-04.obj
+    - lion-poses/lion-05.obj
+    - lion-poses/lion-06.obj
+    - lion-poses/lion-07.obj
+    - lion-poses/lion-08.obj
+    - lion-poses/lion-09.obj
+
+markers:
+  - 3420:111 #
