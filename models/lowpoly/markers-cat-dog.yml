@@ -64,9 +64,9 @@ markers:
   - "371:427" # tail tip
   - "353:422" # tail mid upper
   - "354:421" # tail mid lower
-  - "182:223" # lower back
-  - "188:220" # shoulders
-  - "194:467" # top of head
+  - "201:221" # lower back
+  - "185:220" # shoulders
+  - "192:331" # top of head
   - "133:470" # left ear tip
   - "341:203" # right ear tip
   - "23:469"  # outer ear left
@@ -76,3 +76,6 @@ markers:
   - "330:342" # nose
   - "123:327" # left jaw
   - "331:91"  # right jaw
+  - "236:232" # front chest
+  - "95:361"  # left hip
+  - "301:114" # right hip
