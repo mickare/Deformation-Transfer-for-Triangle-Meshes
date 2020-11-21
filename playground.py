@@ -1,20 +1,21 @@
-import itertools
-from typing import List, Sequence
+import hashlib
+from typing import List, Optional, Tuple
 
 import numpy as np
 import scipy
 import tqdm
-from scipy.sparse import dok_matrix, lil_matrix
+from scipy import sparse
 from scipy.sparse.linalg import lsqr
 from scipy.spatial import KDTree
 
+import config
 import meshlib
-from render import get_markers, BrowserVisualizer
+from render import BrowserVisualizer
+from utils import SparseMatrixCache
 
-
-original_source = meshlib.Mesh.from_file_obj("models/lowpoly_cat/cat_reference.obj")
-original_target = meshlib.Mesh.from_file_obj("models/lowpoly_dog/dog_reference.obj")
-markers = get_markers()  # cat, dog
+original_source = meshlib.Mesh.from_file_obj(config.source_reference)
+original_target = meshlib.Mesh.from_file_obj(config.target_reference)
+markers = config.markers  # cat, dog
 # markers = np.transpose((markers[:, 0], markers[:, 0]))
 
 target_mesh = original_target.to_fourth_dimension()
@@ -93,7 +94,7 @@ class TransformEntry:
                 self.kleinA[r, i + 6] = invV[1, j]
                 self.kleinA[r, i + 9] = invV[2, j]
 
-    def insert_to(self, target, row: int, factor=1.0):
+    def insert_to(self, target: sparse.spmatrix, row: int, factor=1.0):
         # Index
         i0 = self.face[0] * 3
         i1 = self.face[1] * 3
@@ -106,9 +107,6 @@ class TransformEntry:
         target[row:row + 9, i2:i2 + 3] += part[:, 6:9]
         target[row:row + 9, i3:i3 + 3] += part[:, 9:12]
 
-    #########################################################
-    # Create inverse of triangle spans
-
 
 #########################################################
 print("Inverse Triangle Spans")
@@ -120,43 +118,97 @@ assert len(subject.faces) == len(invVs)
 print("Preparing Transforms")
 transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
 
+
 #########################################################
 # Identity Cost - of transformations
-Bi = np.tile(np.identity(3, dtype=np.float).flatten(), len(subject.faces))
-AEi = lil_matrix(
-    (
-        # Count of all minimization terms
-        len(subject.faces) * 9,
-        # Length of flat result x
-        len(subject.vertices) * 3
-    ),
-    dtype=np.float
-)
-assert AEi.shape[0] == len(Bi)
-for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Identity Cost")):  # type: int, TransformEntry
-    Ti.insert_to(AEi, row=index * 9)
+
+
+def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.ndarray]:
+    AEi = sparse.lil_matrix(
+        (
+            # Count of all minimization terms
+            len(subject.faces) * 9,
+            # Length of flat result x
+            len(subject.vertices) * 3
+        ),
+        dtype=np.float
+    )
+    for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Identity Cost")):  # type: int, TransformEntry
+        Ti.insert_to(AEi, row=index * 9)
+
+    Bi = np.tile(np.identity(3, dtype=np.float).flatten(), len(subject.faces))
+
+    assert AEi.shape[0] == len(Bi)
+    return AEi.tocsr(), Bi
+
+
+AEi, Bi = construct_identity_cost(subject, transforms)
+
 
 #########################################################
 # Smoothness Cost - of differences to adjacent transformations
-count_adjacent = sum(len(a) for a in adjacent)
-Bs = np.zeros(count_adjacent * 9)
-AEs = lil_matrix(
-    (
+
+
+def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spmatrix, np.ndarray]:
+    count_adjacent = sum(len(a) for a in adjacent)
+    shape = (
         # Count of all minimization terms
         count_adjacent * 9,
         # Length of flat result x
         len(subject.vertices) * 3
-    ),
-    dtype=np.float
-)
-assert AEs.shape[0] == len(Bs)
-row = 0
-for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost")):  # type: int, TransformEntry
-    for adj in adjacent[index]:
-        Ti.insert_to(AEs, row)
-        transforms[adj].insert_to(AEs, row, -1.0)
-        row += 9
-assert row == AEs.shape[0]
+    )
+
+    hashid = hashlib.sha256()
+    hashid.update(np.array(shape).data)
+    hashid.update(subject.vertices.data)
+    hashid = hashid.hexdigest()
+
+    cache = SparseMatrixCache(suffix="_aes").entry(hashid=hashid, shape=shape)
+    AEs = cache.get()
+
+    if AEs is None:
+        AEs = sparse.lil_matrix(shape, dtype=np.float)
+        row = 0
+        for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost")):
+            for adj in adjacent[index]:
+                Ti.insert_to(AEs, row)
+                transforms[adj].insert_to(AEs, row, -1.0)
+                row += 9
+        assert row == AEs.shape[0]
+        AEs = AEs.tocsr()
+        cache.store(AEs)
+    else:
+        print("Reusing Smoothness Cost")
+
+    Bs = np.zeros(count_adjacent * 9)
+    assert AEs.shape[0] == len(Bs)
+    return AEs, Bs
+
+
+AEs, Bs = construct_smoothness_cost(subject, transforms, adjacent)
+
+#
+# def create_cost_smoothness() -> Tuple[spmatrix, np.ndarray]:
+#     count_adjacent = sum(len(a) for a in adjacent)
+#     Bs = np.zeros(count_adjacent * 9)
+#     AEs = sparse.csc_matrix(
+#         (
+#             # Count of all minimization terms
+#             count_adjacent * 9,
+#             # Length of flat result x
+#             len(subject.vertices) * 3
+#         ),
+#         dtype=np.float
+#     )
+#     assert AEs.shape[0] == len(Bs)
+#     row = 0
+#     for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost")):  # type: int, TransformEntry
+#         for adj in adjacent[index]:
+#             Ti.insert_to(AEs, row)
+#             transforms[adj].insert_to(AEs, row, -1.0)
+#             row += 9
+#     assert row == AEs.shape[0]
+#     return AEs, Bs
 
 # KDTree for closest points in E_c
 kd_tree_target = KDTree(target_mesh.vertices)
