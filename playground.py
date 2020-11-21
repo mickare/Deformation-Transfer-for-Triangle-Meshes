@@ -210,15 +210,17 @@ AEs, Bs = construct_smoothness_cost(subject, transforms, adjacent)
 #     assert row == AEs.shape[0]
 #     return AEs, Bs
 
+
+#########################################################
+print("Building KDTree for closest points")
 # KDTree for closest points in E_c
 kd_tree_target = KDTree(target_mesh.vertices)
-result_verts = 0
+vertices: Optional[np.ndarray] = None
 
 #########################################################
 # Start of loop
 
-iterations = 4
-total_steps = 5  # Steps per iteration
+total_steps = 6  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
 
@@ -229,14 +231,24 @@ for iteration in range(iterations):
         pBar.update()
 
 
+    Astack = [AEi * Wi, AEs * Ws]
+    Bstack = [Bi * Wi, Bs * Ws]
+
     #########################################################
-    pbar_next("Combining Costs")
-    A = scipy.sparse.vstack((AEi * Wi, AEs * Ws), format="lil")
-    b = np.concatenate((Bi * Wi, Bs * Ws))
+    pbar_next("Closest Point Costs")
 
     if iteration > 0:
-        A = scipy.sparse.vstack([A, get_aec(len(subject.vertices)) * Wc[iteration]], format="lil")
-        b = np.concatenate((b, get_bec(get_closest_points(kd_tree_target, result_verts.reshape((-1, 3))), target_mesh.vertices).flatten() * Wc[iteration]))
+        AEc = get_aec(len(subject.vertices))
+        Bc = get_bec(get_closest_points(kd_tree_target, vertices), target_mesh.vertices).flatten()
+        assert AEc.shape[0] == Bc.shape[0]
+        Astack.append(AEc * Wc[iteration])
+        Bstack.append(Bc * Wc[iteration])
+
+    #########################################################
+    pbar_next("Combining Costs")
+
+    A = sparse.vstack(Astack, format="lil")
+    b = np.concatenate(Bstack)
 
     #########################################################
     pbar_next("Enforcing Markers")
@@ -259,11 +271,12 @@ for iteration in range(iterations):
     #########################################################
     # Apply new vertices
     pbar_next("Applying vertices")
-    vertices = result_verts.reshape((-1, 3))[:len(original_source.vertices)]
-    result = meshlib.Mesh(vertices=vertices, faces=original_source.faces).to_fourth_dimension()
-    # Enforce target vertices
-    for mark_src_i, mark_dest_i in markers:
-        result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
+    vertices = result_verts.reshape((-1, 3))
+    result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
+                          faces=original_source.faces).to_fourth_dimension()
+    # # Enforce target vertices
+    # for mark_src_i, mark_dest_i in markers:
+    #     result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
 
     #########################################################
     pbar_next("Rendering")
