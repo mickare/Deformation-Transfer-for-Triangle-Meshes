@@ -252,11 +252,19 @@ for iteration in range(iterations):
 
     #########################################################
     pbar_next("Enforcing Markers")
-    for mark_src_i, mark_dest_i in markers:
+    Amarker = sparse.lil_matrix((len(markers) * 3, len(subject.vertices) * 3), dtype=np.float)
+    Bmarker = np.zeros(len(markers) * 3)
+    for n, (mark_src_i, mark_dest_i) in enumerate(markers):
         i = mark_src_i * 3
         valueB = A[:, i:i + 3] @ target_mesh.vertices[mark_dest_i]
         b -= valueB
         A[:, i:i + 3] = 0
+
+        Amarker[3 * n:3 * n + 3, i:i + 3] = np.identity(3)
+        Bmarker[3 * n:3 * n + 3] = target_mesh.vertices[mark_dest_i]
+
+    A = sparse.vstack((A, Amarker * 1), format="lil")
+    b = np.concatenate((b, Bmarker * 1))
 
     #########################################################
     pbar_next("Solving")
