@@ -46,7 +46,7 @@ class ConfigFile:
         if not markers:
             return np.array([])
         elif isinstance(markers, dict):
-            return np.array([(int(s), int(t)) for s, t in markers.items()])
+            return np.array([(int(s), int(t)) for s, t in markers.items()], dtype=np.int)
         elif isinstance(markers, (list, tuple)):
             result: List[Tuple[int, int]] = []
             for e in markers:
@@ -56,9 +56,9 @@ class ConfigFile:
                 else:
                     assert len(e) == 2
                     result.append((int(e[0]), int(e[1])))
-            return np.array(result)
+            return np.array(result, dtype=np.int)
         elif isinstance(markers, str) and os.path.isfile(os.path.join(basepath, markers)):
-            return np.asarray(get_markers(os.path.join(basepath, markers)))
+            return np.asarray(get_markers(os.path.join(basepath, markers)), dtype=np.int)
         else:
             raise ValueError(f"invalid marker format: {type(markers)}")
 
@@ -68,13 +68,14 @@ class ConfigFile:
             return cls(file, cfg=yaml.safe_load(fp))
 
     class Paths:
-        # Lowpoly
-        catdog = "models/lowpoly/markers-cat-dog.yml"
-        # Highpoly
-        catlion = "models/highpoly/markers-cat-lion.yml"
+        class lowpoly:
+            catdog = "models/lowpoly/markers-cat-dog.yml"
+
+        class highpoly:
+            catlion = "models/highpoly/markers-cat-lion.yml"
 
 
-config_default = ConfigFile.load(ConfigFile.Paths.catlion)
+config_default = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
 source_reference = config_default.source.reference
 target_reference = config_default.target.reference
 markers = config_default.markers
