@@ -61,7 +61,7 @@ def get_closest_points(kd_tree: KDTree, verts: np.array):
 
 
 def get_aec(num_verts):
-    return scipy.sparse.identity(num_verts*3, dtype=np.float, format="lil")
+    return sparse.identity(num_verts * 3, dtype=np.float, format="csc")
 
 
 def get_bec(closest_points: np.array, verts: np.array):
@@ -124,7 +124,7 @@ transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
 
 
 def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.ndarray]:
-    AEi = sparse.lil_matrix(
+    AEi = sparse.dok_matrix(
         (
             # Count of all minimization terms
             len(subject.faces) * 9,
@@ -167,13 +167,15 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     AEs = cache.get()
 
     if AEs is None:
-        AEs = sparse.lil_matrix(shape, dtype=np.float)
+        lhs = sparse.dok_matrix(shape, dtype=np.float)
+        rhs = sparse.dok_matrix(shape, dtype=np.float)
         row = 0
         for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost")):
             for adj in adjacent[index]:
-                Ti.insert_to(AEs, row)
-                transforms[adj].insert_to(AEs, row, -1.0)
+                Ti.insert_to(lhs, row)
+                transforms[adj].insert_to(rhs, row)
                 row += 9
+        AEs = (lhs - rhs)
         assert row == AEs.shape[0]
         AEs = AEs.tocsr()
         cache.store(AEs)
@@ -231,8 +233,8 @@ for iteration in range(iterations):
         pBar.update()
 
 
-    Astack = [AEi * Wi, AEs * Ws]
-    Bstack = [Bi * Wi, Bs * Ws]
+    Astack = [AEi * math.sqrt(Wi), AEs * math.sqrt(Ws)]
+    Bstack = [Bi * math.sqrt(Wi), Bs * math.sqrt(Ws)]
 
     #########################################################
     pbar_next("Closest Point Costs")
@@ -241,50 +243,44 @@ for iteration in range(iterations):
         AEc = get_aec(len(subject.vertices))
         Bc = get_bec(get_closest_points(kd_tree_target, vertices), target_mesh.vertices).flatten()
         assert AEc.shape[0] == Bc.shape[0]
-        Astack.append(AEc * Wc[iteration])
-        Bstack.append(Bc * Wc[iteration])
+        Astack.append(AEc * math.sqrt(Wc[iteration]))
+        Bstack.append(Bc * math.sqrt(Wc[iteration]))
 
     #########################################################
     pbar_next("Combining Costs")
 
-    A = sparse.vstack(Astack, format="lil")
+    A = sparse.vstack(Astack, format="dok")
     b = np.concatenate(Bstack)
 
     #########################################################
     pbar_next("Enforcing Markers")
-    Amarker = sparse.lil_matrix((len(markers) * 3, len(subject.vertices) * 3), dtype=np.float)
-    Bmarker = np.zeros(len(markers) * 3)
     for n, (mark_src_i, mark_dest_i) in enumerate(markers):
         i = mark_src_i * 3
         valueB = A[:, i:i + 3] @ target_mesh.vertices[mark_dest_i]
         b -= valueB
         A[:, i:i + 3] = 0
 
-        Amarker[3 * n:3 * n + 3, i:i + 3] = np.identity(3)
-        Bmarker[3 * n:3 * n + 3] = target_mesh.vertices[mark_dest_i]
-
-    A = sparse.vstack((A, Amarker * 1), format="lil")
-    b = np.concatenate((b, Bmarker * 1))
-
     #########################################################
     pbar_next("Solving")
-    # U, S, Vt = svds(A)
-    # psInv = Vt.T @ np.linalg.inv(np.diag(S)) @ U.T
-    # result = psInv @ b
+    A = A.tocsc()
 
-    lsqr_result = lsqr(A, b)
-    # lsqr_result = lsqr(A.T @ A, A.T @ b)
+    # U, S, Vt = sparse.linalg.svds(A, k=len(original_source.vertices) * 3, which='LM')
+    # result_verts = Vt.T @ sparse.diags([1.0 / S], [0]) @ U.T @ b
+
+    x0 = subject.vertices
+    assert A.shape[1] == x0.shape[0] * 3
+    lsqr_result = lsqr(A, b, iter_lim=2000, show=True, x0=x0.flatten())
     result_verts = lsqr_result[0]
 
     #########################################################
     # Apply new vertices
     pbar_next("Applying vertices")
-    vertices = result_verts.reshape((-1, 3))
+    vertices = result_verts[:len(subject.vertices) * 3].reshape((-1, 3))
     result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
                           faces=original_source.faces).to_fourth_dimension()
-    # # Enforce target vertices
-    # for mark_src_i, mark_dest_i in markers:
-    #     result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
+    # Enforce target vertices
+    for mark_src_i, mark_dest_i in markers:
+        result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
 
     #########################################################
     pbar_next("Rendering")
