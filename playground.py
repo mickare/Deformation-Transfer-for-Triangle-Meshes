@@ -145,20 +145,31 @@ transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
 
 
 def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.ndarray]:
-    AEi = sparse.dok_matrix(
-        (
-            # Count of all minimization terms
-            len(subject.faces) * 9,
-            # Length of flat result x
-            len(subject.vertices) * 3
-        ),
-        dtype=np.float
+    shape = (
+        # Count of all minimization terms
+        len(subject.faces) * 9,
+        # Length of flat result x
+        len(subject.vertices) * 3
     )
-    for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Identity Cost")):  # type: int, TransformEntry
-        Ti.insert_to(AEi, row=index * 9)
+
+    hashid = hashlib.sha256()
+    hashid.update(b"identity")
+    hashid.update(np.array(shape).data)
+    hashid.update(subject.vertices.data)
+    hashid = hashid.hexdigest()
+
+    cache = SparseMatrixCache(suffix="_aei").entry(hashid=hashid, shape=shape)
+    AEi = cache.get()
+
+    if AEi is None:
+        AEi = sparse.dok_matrix(shape, dtype=np.float)
+        for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Identity Cost")):  # type: int, TransformEntry
+            Ti.insert_to(AEi, row=index * 9)
+        AEi = AEi.tocsr()
+        AEi.eliminate_zeros()
+        cache.store(AEi)
 
     Bi = np.tile(np.identity(3, dtype=np.float).flatten(), len(subject.faces))
-
     assert AEi.shape[0] == len(Bi)
     return AEi.tocsr(), Bi
 
@@ -180,6 +191,7 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     )
 
     hashid = hashlib.sha256()
+    hashid.update(b"smoothness")
     hashid.update(np.array(shape).data)
     hashid.update(subject.vertices.data)
     hashid = hashid.hexdigest()
@@ -199,6 +211,7 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
         AEs = (lhs - rhs)
         assert row == AEs.shape[0]
         AEs = AEs.tocsr()
+        AEi.eliminate_zeros()
         cache.store(AEs)
     else:
         print("Reusing Smoothness Cost")
