@@ -60,7 +60,7 @@ markers:
   - "14:238"  # left front leg to belly
   - "217:4"   # right front leg to belly
   - "180:414" # tail start upper
-  - "346:415" # tail start lower
+  - "285:444" # tail start lower
   - "371:427" # tail tip
   - "353:422" # tail mid upper
   - "354:421" # tail mid lower
