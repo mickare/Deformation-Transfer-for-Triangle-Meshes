@@ -243,6 +243,7 @@ vertices: Optional[np.ndarray] = None
 #########################################################
 # Start of loop
 
+iterations = 4
 total_steps = 6  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
