@@ -1,0 +1,57 @@
+#source target
+#cat lion
+2653 1316 #left front paw left side
+2620 1412 #left front paw right side
+2141 920 #right front paw left side
+1570 827 #right front paw right side
+6855 4585 #left back paw left side
+6533 4655 #left back paw right side
+5752 4199 #right back paw left side
+5819 4130 #right back paw right side
+5185 3998 #right back leg knee backside
+6194 4454 #left back leg knee backside
+6313 4456 #left back leg knee frontside
+5257 3985 #right back leg knee frontside
+2422 1156 #left front joint above paw backside
+1441 670 #right front joint above paw backside
+2405 1224 #left front joint above paw frontside
+1430 738 #right front joint above paw frontside
+648 263 #belly
+173 66 #tail start upper
+82 40 #tail start lower
+7179 4979 #tail tip
+5106 3913 #right hind quarters
+288 4365 #left hind quarters
+190 84 #lower back
+444 253 #mid back
+1151 345 #left shoulder
+786 489 #right shoulder
+38 3904 #right back leg to belly
+266 90 #left back leg to belly
+912 394 #chest
+3272 1603 #throat
+4967 2285 #left chin
+3947 3623 #right chin
+3401 2775 #upper lip mid
+4988 2654 #left cheek
+3999 3682 #right cheek
+4315 1859 #left mouth
+3454 2875 #right mouth
+4263 1811 #left nose lower
+3510 2889 #right nose lower
+4078 1833 #nose top
+4213 2727 #left eye inner
+4186 2733 #left eye outer
+4181 2822 #left eye upper
+4010 3778 #right eye inner
+4047 3762 #right eye outer
+3587 3839 #right eye upper
+3540 2804 #forehead
+3677 2581 #head top
+4698 2422 #left ear tip
+3804 3056 #right ear tip
+4816 2398 #left ear inner
+4773 2321 #left ear outer
+3757 3453 #right ear inner
+3695 3268 #right ear outer
+3236 1641 #neck
