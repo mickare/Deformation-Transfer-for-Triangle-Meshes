@@ -1,8 +1,10 @@
 import hashlib
-from typing import List, Optional, Tuple
+import itertools
+import math
+from collections import defaultdict
+from typing import List, Optional, Tuple, Dict, Set
 
 import numpy as np
-import scipy
 import tqdm
 from scipy import sparse
 from scipy.sparse.linalg import lsqr
@@ -31,29 +33,50 @@ Wc = [1.0, 200.0, 1000.0, 5000.0]
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
 
-# def is_adjacent_edge(a: np.ndarray, b: np.ndarray):
-#     return any(
-#         (a[list(perm)] == b).sum() == 2 for perm in itertools.permutations((0, 1, 2), 3)
-#     )
-#
-# adjacent_edges: List[List[int]] = [
-#     [j for j, o in enumerate(original_source.faces) if i != j and is_adjacent_edge(o, f)]
-#     for i, f in enumerate(original_source.faces)
-# ]
 
-adjacent_vertices: List[List[int]] = [
-    list(set(j
-             for perm in ((0, 1, 2), (2, 0, 1), (1, 2, 0))
-             for j in np.where(original_source.faces == f[list(perm)])[0]
-             if j != i))
-    for i, f in enumerate(original_source.faces)]
-
-adjacent = adjacent_vertices
+def is_adjacent_edge(a: np.ndarray, b: np.ndarray):
+    return any(
+        (a[list(perm)] == b).sum() == 2 for perm in itertools.permutations((0, 1, 2), 3)
+    )
 
 
-#
-# for i, f in enumerate(original_source.faces):
-#     set(*(np.where(original_source.faces == f[perm]) for perm in np.itertools.permutations(range(3), 3)))
+def compute_adjacent_by_edges(mesh: meshlib.Mesh):
+    """Computes the adjacent triangles by using the edges"""
+    candidates = defaultdict(set)  # Edge -> Faces
+    for n, f in enumerate(mesh.faces):
+        f0, f1, f2 = sorted(f)
+        candidates[(f0, f1)].add(n)
+        candidates[(f0, f2)].add(n)
+        candidates[(f1, f2)].add(n)
+
+    faces_adjacent: Dict[int, Set[int]] = defaultdict(set)  # Face -> Faces
+    for faces in candidates.values():
+        for f in faces:
+            faces_adjacent[f].update(faces)
+
+    faces_sorted = sorted([(f, [a for a in adj if a != f]) for f, adj in faces_adjacent.items()], key=lambda e: e[0])
+    return [adj for f, adj in faces_sorted]
+
+
+def compute_adjacent_by_vertices(mesh: meshlib.Mesh):
+    candidates = defaultdict(set)  # Vertex -> Faces
+    for n, f in enumerate(mesh.faces):
+        f0, f1, f2 = f
+        candidates[f0].add(n)
+        candidates[f1].add(n)
+        candidates[f2].add(n)
+
+    faces_adjacent: Dict[int, Set[int]] = defaultdict(set)  # Face -> Faces
+    for faces in candidates.values():
+        for f in faces:
+            faces_adjacent[f].update(faces)
+
+    faces_sorted = sorted([(f, [a for a in adj if a != f]) for f, adj in faces_adjacent.items()], key=lambda e: e[0])
+    return [adj for f, adj in faces_sorted]
+
+
+# adjacent = compute_adjacent_by_vertices(original_source)
+adjacent = compute_adjacent_by_edges(original_source)
 
 
 def get_closest_points(kd_tree: KDTree, verts: np.array):
