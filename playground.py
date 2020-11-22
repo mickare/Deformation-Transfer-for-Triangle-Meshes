@@ -28,7 +28,7 @@ subject = original_source.to_fourth_dimension()
 # Weights of cost functions
 Ws = 1.0
 Wi = 0.001
-Wc = [1.0, 200.0, 1000.0, 5000.0]
+Wc = [0.0, 1.0, 200.0, 1000.0, 5000.0]
 
 # Precalculate the adjacent triangles in source
 print("Prepare adjacent list")
@@ -243,7 +243,7 @@ vertices: Optional[np.ndarray] = None
 #########################################################
 # Start of loop
 
-iterations = 4
+iterations = len(Wc)
 total_steps = 6  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
