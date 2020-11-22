@@ -112,19 +112,17 @@ class TransformEntry:
         for i in range(3):  # Row of T
             for j in range(3):  # Column of T
                 r = 3 * j + i
-                self.kleinA[r, i] = - (invV[0, j] + invV[1, j] + invV[2, j])
-                self.kleinA[r, i + 3] = invV[0, j]
-                self.kleinA[r, i + 6] = invV[1, j]
-                self.kleinA[r, i + 9] = invV[2, j]
+                self.kleinA[r, i] = - (invV[j, 0] + invV[j, 1] + invV[j, 2])
+                self.kleinA[r, i + 3] = invV[j, 0]
+                self.kleinA[r, i + 6] = invV[j, 1]
+                self.kleinA[r, i + 9] = invV[j, 2]
 
-    def insert_to(self, target: sparse.spmatrix, row: int, factor=1.0):
+    def insert_to(self, target: sparse.spmatrix, row: int):
         # Index
-        i0 = self.face[0] * 3
-        i1 = self.face[1] * 3
-        i2 = self.face[2] * 3
-        i3 = self.face[3] * 3
+        i0, i1, i2, i3 = self.face * 3
+
         # Insert by adding
-        part = self.kleinA * factor
+        part = self.kleinA
         target[row:row + 9, i0:i0 + 3] += part[:, 0:3]
         target[row:row + 9, i1:i1 + 3] += part[:, 3:6]
         target[row:row + 9, i2:i2 + 3] += part[:, 6:9]
