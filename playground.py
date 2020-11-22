@@ -255,8 +255,8 @@ for iteration in range(iterations):
         pBar.update()
 
 
-    Astack = [AEi * math.sqrt(Wi), AEs * math.sqrt(Ws)]
-    Bstack = [Bi * math.sqrt(Wi), Bs * math.sqrt(Ws)]
+    Astack = [AEi * Wi, AEs * Ws]
+    Bstack = [Bi * Wi, Bs * Ws]
 
     #########################################################
     pbar_next("Closest Point Costs")
@@ -265,8 +265,8 @@ for iteration in range(iterations):
         AEc = get_aec(len(subject.vertices))
         Bc = get_bec(get_closest_points(kd_tree_target, vertices), target_mesh.vertices).flatten()
         assert AEc.shape[0] == Bc.shape[0]
-        Astack.append(AEc * math.sqrt(Wc[iteration]))
-        Bstack.append(Bc * math.sqrt(Wc[iteration]))
+        Astack.append(AEc * Wc[iteration])
+        Bstack.append(Bc * Wc[iteration])
 
     #########################################################
     pbar_next("Combining Costs")
