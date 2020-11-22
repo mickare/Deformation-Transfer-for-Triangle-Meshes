@@ -72,7 +72,8 @@ class ConfigFile:
             catdog = "models/lowpoly/markers-cat-dog.yml"
 
         class highpoly:
-            catlion = "models/highpoly/markers-cat-lion.yml"
+            cat_lion = "models/highpoly/markers-cat-lion.yml"
+            horse_camel = "models/highpoly/markers-horse-camel.yml"
 
 
 config_default = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
