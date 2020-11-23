@@ -1,4 +1,4 @@
-from typing import Union, Sequence, Optional, Dict
+from typing import Union, Sequence, Optional, Dict, List, Tuple, Any
 
 import numpy as np
 import plotly.graph_objects as go
@@ -20,7 +20,7 @@ class BrowserVisualizer:
         self.mesh_kwargs["lighting"] = dict(
             ambient=0.1,
             diffuse=1.0,
-            facenormalsepsilon=0.00000001,
+            facenormalsepsilon=0.0000000000001,
             roughness=0.5,
             specular=0.4,
             fresnel=0.001
@@ -111,6 +111,64 @@ class MeshPlots:
             vis.add_mesh(m, offset=offset)
             offset += (0, 0, size + spacing)
         return vis
+
+    @classmethod
+    def result_merged(cls, source: Mesh, target: Mesh, result: Mesh, markers: List[Tuple[int, int]],
+                      mesh_kwargs: Optional[Dict[str, Any]] = None):
+        mesh_kwargs = mesh_kwargs or {}
+
+        vis = BrowserVisualizer()
+        vis.add_mesh(result,
+                     name=f"Result",
+                     text=[f"<b>Vertex:</b> {n}" for n in range(len(target.vertices))],
+                     **mesh_kwargs
+                     )
+        vis.add_mesh(source,
+                     name="Source",
+                     color="red",
+                     opacity=0.025,
+                     # text=[f"<b>Vertex:</b> {n}" for n in range(len(target.vertices))]
+                     hoverinfo='skip',
+                     )
+        vis.add_mesh(target,
+                     name="Target",
+                     color="blue",
+                     opacity=0.025,
+                     # text=[f"<b>Vertex:</b> {n}" for n in range(len(target.vertices))]
+                     hoverinfo='skip',
+                     )
+        vis.add_scatter(
+            target.vertices[markers[:, 1]],
+            marker=dict(
+                color='yellow',
+                size=3,
+                opacity=0.9,
+                symbol='x',
+            ),
+            text=[f"<b>Index:</b> {t}" for s, t in markers],
+            name="Marker Target"
+        )
+        vis.add_scatter(
+            source.vertices[markers[:, 0]],
+            marker=dict(
+                color='red',
+                size=3,
+                opacity=0.9,
+                symbol='x',
+            ),
+            text=[f"<b>Index:</b> {s}" for s, t in markers],
+            name="Marker Source"
+        )
+        vis.add_scatter(
+            target.vertices,
+            marker=dict(
+                color='blue',
+                size=1,
+                opacity=0.2,
+            ),
+            name="Vertex Target"
+        )
+        vis.show(renderer="browser")
 
 
 def plot_example2():
