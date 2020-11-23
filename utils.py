@@ -1,10 +1,14 @@
+import hashlib
 import os
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from functools import reduce
-from typing import Tuple, Callable, Optional, Any
+from typing import Tuple, Callable, Optional, Any, Union, Sequence
 
+import numpy as np
 from scipy import sparse
+
+from meshlib import Mesh
 
 
 def tween(seq, sep):
@@ -56,3 +60,53 @@ class SparseMatrixCache:
         assert hashid
         assert shape
         return SparseMatrixCache.Entry(self, hashid, shape)
+
+
+class DeformedMeshCache:
+    def __init__(self, suffix='', prefix='', path='.cache'):
+        self.suffix = suffix
+        self.prefix = prefix
+        self.path = path
+
+    @dataclass
+    class Entry:
+        parent: "DeformedMeshCache"
+        hashid: str
+        original: Mesh
+
+        @property
+        def file(self):
+            return os.path.join(self.parent.path, f"{self.parent.prefix}{self.hashid}{self.parent.suffix}.npz")
+
+        def get(self) -> Optional[Mesh]:
+            file = self.file
+            # Try to load file
+            if os.path.isfile(file):
+                with np.load(file) as data:
+                    vertices = data["vertices"]
+                    faces = data["faces"]
+                    if vertices.shape == self.original.vertices.shape and (faces == self.original.faces).all():
+                        return Mesh(vertices, faces)
+            return None
+
+        def store(self, mesh: Mesh):
+            file = self.file
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            m = mesh.to_third_dimension()
+            np.savez_compressed(file, vertices=m.vertices, faces=m.faces)
+
+        def cache(self, func: Callable[[], Mesh]) -> Mesh:
+            mesh = self.get()
+            if mesh is None:
+                mesh = func()
+                self.store(mesh)
+            return mesh
+
+    def entry(self, original: Mesh, salts: Sequence[Union[bytes, bytearray, memoryview]] = ()):
+        assert original
+        h = hashlib.sha256()
+        h.update(original.vertices.data)
+        h.update(original.faces.data)
+        for s in salts:
+            h.update(s)
+        return DeformedMeshCache.Entry(self, h.hexdigest(), original)

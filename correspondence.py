@@ -1,6 +1,8 @@
 import hashlib
+import json
+import time
 from collections import defaultdict
-from typing import Tuple, Dict, Set
+from typing import Tuple, Dict, Set, Optional
 
 import numpy as np
 import tqdm
@@ -11,7 +13,7 @@ import meshlib
 from config import ConfigFile
 from render import BrowserVisualizer, MeshPlots
 from sparsesolver import BlockComponentSolver, ComponentSolver, ProcessComponentSolver
-from utils import SparseMatrixCache
+from utils import SparseMatrixCache, DeformedMeshCache
 
 #########################################################
 # Configuration
@@ -300,20 +302,35 @@ for iteration in range(iterations):
 
     #########################################################
     pbar_next("Solving")
+    A = A.tocsc()
 
-    # Initial guess for Least-Squared Solver
-    x0 = vertices
-    x0[markers[:, 0]] = 0
-    vertices = solver(A.tocsc(), b, x0=vertices)
+    result: Optional[meshlib.Mesh] = None
+    mesh_cache = None
+    if iteration == 0:
+        mesh_cache = DeformedMeshCache(suffix="_iter0").entry(
+            original_source,
+            (b.data, json.dumps(solver_kwargs).encode())
+        )
+        result = mesh_cache.get()
 
-    #########################################################
-    # Apply new vertices
-    pbar_next("Applying vertices")
-    result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
-                          faces=original_source.faces).to_fourth_dimension()
-    # Enforce target vertices
-    for mark_src_i, mark_dest_i in markers:
-        result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
+    if result is None:
+        # Initial guess for Least-Squared Solver
+        x0 = vertices
+        x0[markers[:, 0]] = 0
+        vertices = solver(A.tocsc(), b, x0=vertices)
+
+        # Apply new vertices
+        result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
+                              faces=original_source.faces)
+        # Enforce target vertices
+        for mark_src_i, mark_dest_i in markers:
+            result.vertices[mark_src_i] = target_mesh.vertices[mark_dest_i]
+
+        if mesh_cache is not None:
+            mesh_cache.store(result)
+    else:
+        print(f"Reusing solver solution for iteration {iteration}")
+        vertices = result.to_fourth_dimension().vertices
 
     #########################################################
     pbar_next("Plotting")
