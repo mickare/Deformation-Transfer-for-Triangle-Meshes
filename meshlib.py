@@ -77,6 +77,19 @@ class Mesh:
         """
         self.vertices += offset
 
+    def span_components(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Calculates the triangle span components of each surface with the offset v1
+        :return:
+            triangles Nx3x3
+        """
+        v1, v2, v3 = self.vertices[self.faces.T][:3]
+        a = v2 - v1
+        b = v3 - v1
+        tmp = np.cross(a, b)
+        c = (tmp.T / np.sqrt(np.linalg.norm(tmp, axis=1))).T
+        return a, b, c
+
     @property
     def span(self) -> np.ndarray:
         """
@@ -84,11 +97,7 @@ class Mesh:
         :return:
             triangles Nx3x3
         """
-        v1, v2, v3 = self.vertices[self.faces].transpose((1, 0, 2))[:3]
-        a = v2 - v1
-        b = v3 - v1
-        tmp = np.cross(a, b)
-        c = (tmp.T / np.sqrt(np.linalg.norm(tmp, axis=1))).T
+        a, b, c = self.span_components()
         return np.transpose((a, b, c), (1, 0, 2))
 
     @property
@@ -109,7 +118,7 @@ class Mesh:
                 return self
 
         assert self.vertices.shape[1] == 3, f"Some strange error occurred! vertices.shape = {self.vertices.shape}"
-        c = self.span[:, 2]
+        a, b, c = self.span_components()
         v4 = self.v1 + c
         new_vertices = np.concatenate((self.vertices, v4), axis=0)
         v4_indices = np.arange(len(self.vertices), len(self.vertices) + len(c))
