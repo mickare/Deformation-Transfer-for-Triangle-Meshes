@@ -1,12 +1,13 @@
 from plotly.subplots import make_subplots
 
-import config
+from config import ConfigFile
 from meshlib import Mesh
 from render import BrowserVisualizer
 
-source = Mesh.from_file_obj(config.source_reference)
-target = Mesh.from_file_obj(config.target_reference)
-markers = config.markers
+cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
+source = Mesh.from_file_obj(cfg.source.reference)
+target = Mesh.from_file_obj(cfg.target.reference)
+markers = cfg.markers
 
 fig = make_subplots(
     rows=1, cols=2,
@@ -39,13 +40,14 @@ hovertemplate = """
 %{text}
 """
 mesh_kwargs = dict(
-    color='gray',
+    color='#ccc',
+    opacity=1.0,
     flatshading=True,
     lighting=dict(
         ambient=0.1,
         diffuse=1.0,
-        facenormalsepsilon=0.00000001,
-        roughness=0.5,
+        facenormalsepsilon=0.0000000000001,
+        roughness=0.3,
         specular=0.4,
         fresnel=0.001
     ),
@@ -55,12 +57,11 @@ mesh_kwargs = dict(
         z=5000
     ),
     hovertemplate=hovertemplate,
-    opacity=0.5,
 )
 
 colorwheel = [
-    'rgb(119,157, 52)', 'rgb( 47, 65,114)', 'rgb(170,134, 57)', 'rgb(140, 47, 94)',
-    'rgb( 38,113, 88)', 'rgb( 79, 44,115)', 'rgb(170,163, 57)', 'rgb(170, 95, 57)'
+    'rgb(129,167, 62)', 'rgb( 57, 75, 124)', 'rgb(170,134, 57)', 'rgb(150, 57, 104)',
+    'rgb( 48,123, 98)', 'rgb( 79, 44, 115)', 'rgb(170,193, 57)', 'rgb(180, 95, 67)'
 ]
 
 
@@ -80,8 +81,8 @@ fig.add_trace(
         mode="text+markers",
         marker=dict(
             color=[getColor(n) for n in range(len(markers))],
-            size=3,
-            symbol='x',
+            size=4,
+            symbol='x'
         ),
         hovertemplate=hovertemplate,
         text=[f"<b>Index:</b> {s}" for s, t in markers],
@@ -97,7 +98,7 @@ fig.add_trace(
         marker=dict(
             color=[getColor(n) for n in range(len(markers))],
             size=3,
-            symbol='x',
+            symbol='x'
         ),
         hovertemplate=hovertemplate,
         text=[f"<b>Index:</b> {t}" for s, t in markers],
