@@ -23,9 +23,9 @@ from utils import SparseMatrixCache, DeformedMeshCache
 cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
 # Weights of cost functions
-Ws = 1.0
-Wi = 0.001
-Wc = [0.0, 1.0, 200.0, 1000.0, 5000.0]
+Ws = np.sqrt(1.0)
+Wi = np.sqrt(0.001)
+Wc = np.sqrt([0.0, 1.0, 200.0, 1000.0, 5000.0])
 
 # Solver Performance - Precision vs Runtime dilemma
 solver_maxiter = 20000  # 10000 (Solving ~1 Min), 20000 (Solving ~2 Min)
