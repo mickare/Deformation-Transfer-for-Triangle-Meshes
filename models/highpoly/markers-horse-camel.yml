@@ -143,3 +143,12 @@ markers:
   - "2102:7986"  # front left foot right toe
   - "2745:7958"  # front right foot left toe
   - "2763:7990"  # front right foot right toe
+  - "250:4812"   # Ass, between legs
+  - "4054:18677" # left ear inner
+  - "3832:19218" # left ear outer
+  - "5267:18687" # right ear inner
+  - "5070:19227" # right ear outer
+  - "5558:3731"  # right rear leg, torso
+  - "6570:3729"  # left rear leg, torso
+  - "6566:4694"
+  - "5554:4593"
