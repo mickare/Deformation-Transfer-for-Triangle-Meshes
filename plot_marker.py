@@ -2,7 +2,7 @@ import numpy as np
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
-from config import config_default
+from config import config_default, ConfigFile
 from meshlib import Mesh
 from render import BrowserVisualizer
 
@@ -41,14 +41,14 @@ def plot_marker(source: Mesh, target: Mesh, markers: np.ndarray) -> Figure:
     """
     mesh_kwargs = dict(
         color='#ccc',
-        opacity=1.0,
+        opacity=0.5,
         flatshading=True,
         lighting=dict(
             ambient=0.1,
             diffuse=1.0,
             facenormalsepsilon=0.0000000000001,
             roughness=0.3,
-            specular=0.4,
+            specular=0.7,
             fresnel=0.001
         ),
         lightposition=dict(
@@ -158,7 +158,7 @@ def plot_marker(source: Mesh, target: Mesh, markers: np.ndarray) -> Figure:
 
 
 if __name__ == "__main__":
-    cfg = config_default
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
     source = Mesh.from_file_obj(cfg.source.reference)
     target = Mesh.from_file_obj(cfg.target.reference)
     markers = cfg.markers
