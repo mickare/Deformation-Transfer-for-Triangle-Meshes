@@ -83,16 +83,57 @@ adjacent = compute_adjacent_by_edges(original_source)
 #########################################################
 # Closest point search
 
-def get_closest_points(kd_tree: KDTree, verts: np.array):
-    return kd_tree.query(verts)[1]
-
-
-def get_aec(num_verts):
-    return sparse.identity(num_verts, dtype=np.float, format="csc")
+def get_aec(columns, rows):
+    return sparse.identity(columns, dtype=np.float, format="csc")[:rows]
 
 
 def get_bec(closest_points: np.array, verts: np.array):
     return verts[closest_points]
+
+
+def get_closest_points(kd_tree: KDTree, verts: np.array, vert_normals: np.array, target_normals: np.array):
+    closest_points = []
+    max_angle = np.radians(90)
+    for v in range(len(verts)):
+        valid = False
+        i = 200
+        while not valid:
+            neighbours = kd_tree.query(verts[v], i)
+            for n in neighbours[1]:
+                angle = np.arccos(np.dot(vert_normals[v], target_normals[n]))
+                if angle < max_angle:
+                    valid = True
+                    closest_points.append(n)
+                    break
+            i += 1000
+            if i > len(verts):
+                closest_points.append(
+                    kd_tree.query(verts[v], 1)[1])  # ignore 90 degree restriction if no valid point exists
+                break
+    return closest_points
+
+
+def get_vertex_normals(verts: np.array, faces: np.array):
+    candidates = [set() for i in range(len(verts))]
+    for n, f in enumerate(faces):
+        f0, f1, f2, f3 = f
+        candidates[f0].add(n)
+        candidates[f1].add(n)
+        candidates[f2].add(n)
+
+    """
+    Normals only point in the correct direction if the vertices are in the right order in faces. This might not hold for 
+    meshes created by scanners.
+    """
+    triangle_normals = get_triangle_normals(verts, faces)
+    triangle_normals_per_vertex = [[triangle_normals[i] for i in indices] for indices in candidates]
+    vertex_normals = [np.mean(normals, 0) if normals else np.zeros(3, float) for normals in triangle_normals_per_vertex]
+    return vertex_normals
+
+
+def get_triangle_normals(verts: np.array, faces: np.array):
+    return [x / np.linalg.norm(x) for x in
+            np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]])]
 
 
 #########################################################
@@ -229,6 +270,7 @@ AEs, Bs = construct_smoothness_cost(subject, transforms, adjacent)
 print("Building KDTree for closest points")
 # KDTree for closest points in E_c
 kd_tree_target = KDTree(target_mesh.vertices)
+target_normals = get_vertex_normals(target_mesh.vertices, target_mesh.faces)
 vertices: np.ndarray = np.copy(subject.vertices)
 
 #########################################################
@@ -256,8 +298,10 @@ for iteration in range(iterations):
     pbar_next("Closest Point Costs")
 
     if iteration > 0:
-        AEc = get_aec(len(subject.vertices))
-        Bc = get_bec(get_closest_points(kd_tree_target, vertices), target_mesh.vertices)
+        AEc = get_aec(len(subject.vertices), len(original_source.vertices))
+        closest_points = get_closest_points(kd_tree_target, vertices[:len(original_source.vertices)],
+                                            get_vertex_normals(vertices, subject.faces), target_normals)
+        Bc = get_bec(closest_points, target_mesh.vertices)
         assert AEc.shape[0] == Bc.shape[0]
         Astack.append(AEc * Wc[iteration])
         Bstack.append(Bc * Wc[iteration])

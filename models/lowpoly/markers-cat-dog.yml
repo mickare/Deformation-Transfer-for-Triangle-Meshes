@@ -79,3 +79,9 @@ markers:
   - "236:232" # front chest
   - "95:361"  # left hip
   - "301:114" # right hip
+  - "15:240"  # left shoulder
+  - "218:6"   # right shoulder
+  - "149:363" # left mid leg
+  - "372:116" # right mid leg
+  - "37:228"  # left mid leg back
+  - "241:2"   # right mid leg back

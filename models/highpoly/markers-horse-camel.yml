@@ -135,3 +135,11 @@ markers:
   - "1600:1794"
   - "2723:8937"
   - "2070:8896"
+  - "6529:11560" # back right foot right toe
+  - "6521:11533" # back right foot left toe
+  - "7530:11579" # back left foot right toe
+  - "7538:11554" # back left foot left toe
+  - "2078:8016"  # front left foot left toe
+  - "2102:7986"  # front left foot right toe
+  - "2745:7958"  # front right foot left toe
+  - "2763:7990"  # front right foot right toe
