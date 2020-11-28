@@ -132,8 +132,8 @@ def get_vertex_normals(verts: np.array, faces: np.array):
 
 
 def get_triangle_normals(verts: np.array, faces: np.array):
-    return [x / np.linalg.norm(x) for x in
-            np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]])]
+    vns = np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]])
+    return (vns.T / np.linalg.norm(vns, axis=1)).T
 
 
 #########################################################
