@@ -168,6 +168,22 @@ class TransformEntry:
         target[row:row + 3, i3] = tmp[2].reshape((3, 1))
 
 
+def enforce_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, markers: np.ndarray) \
+        -> Tuple[sparse.spmatrix, np.ndarray]:
+    """
+    Solves the marker vertices of `target` in `A` and pushes it to the right side of the equation `Ax=b` into `b`.
+    Returns a new matrix of `A` without the columns of the markers and the new result vector `b'`.
+    :param A: Matrix (NxM)
+    :param b: Result vector (Nx3)
+    :param target: Target mesh
+    :param markers: Marker (Qx2) with first column the source indices and the second the target indices.
+    :return: Matrix (Nx(M-Q)), result vector (Nx3)
+    """
+    invmarker = np.setdiff1d(np.arange(A.shape[1]), markers[:, 0])
+    zb = b - A[:, markers.T[0]] * target.vertices[markers.T[1]]
+    return A[:, invmarker].tocsc(), zb
+
+
 #########################################################
 print("Inverse Triangle Spans")
 invVs = np.linalg.inv(subject.span)
@@ -216,7 +232,7 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
     return AEi.tocsr(), Bi
 
 
-AEi, Bi = construct_identity_cost(subject, transforms)
+AEi, Bi = enforce_markers(*construct_identity_cost(subject, transforms), target_mesh, markers)
 
 
 #########################################################
@@ -264,7 +280,7 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     return AEs, Bs
 
 
-AEs, Bs = construct_smoothness_cost(subject, transforms, adjacent)
+AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent), target_mesh, markers)
 
 #########################################################
 print("Building KDTree for closest points")
@@ -277,7 +293,7 @@ vertices: np.ndarray = np.copy(subject.vertices)
 # Start of loop
 
 iterations = len(Wc)
-total_steps = 6  # Steps per iteration
+total_steps = 4  # Steps per iteration
 # Progress bar
 pBar = tqdm.tqdm(total=iterations * total_steps)
 
@@ -303,8 +319,10 @@ for iteration in range(iterations):
                                             get_vertex_normals(vertices, subject.faces), target_normals)
         Bc = get_bec(closest_points, target_mesh.vertices)
         assert AEc.shape[0] == Bc.shape[0]
-        Astack.append(AEc * Wc[iteration])
-        Bstack.append(Bc * Wc[iteration])
+
+        mAEc, mBc = enforce_markers(AEc, Bc, target_mesh, markers)
+        Astack.append(mAEc * Wc[iteration])
+        Bstack.append(mBc * Wc[iteration])
 
     #########################################################
     pbar_next("Combining Costs")
@@ -312,36 +330,22 @@ for iteration in range(iterations):
     A: sparse.spmatrix = sparse.vstack(Astack, format="csc")
     A.eliminate_zeros()
     b = np.concatenate(Bstack)
-    # b = np.vstack(Bstack)
-
-    #########################################################
-    pbar_next("Enforcing Markers")
-    for mark_src_i, mark_dest_i in markers:
-        valueB = A[:, mark_src_i] * target_mesh.vertices[mark_dest_i].reshape((-1, 3))
-        b -= valueB
-
-    A = A.tolil()
-    for mark_src_i, mark_dest_i in markers:
-        A[:, mark_src_i] = 0
 
     #########################################################
     pbar_next("Solving")
     A = A.tocsc()
 
     # Calculate inverse markers for source
-    invmarker = np.setdiff1d(np.arange(A.T.shape[0]), markers[:, 0])
+    invmarker = np.setdiff1d(np.arange(len(vertices)), markers[:, 0])
+    assert len(vertices) - len(markers) == len(invmarker)
+    assert A.shape[1] == len(invmarker)
+    assert A.shape[0] == b.shape[0]
 
-    # Compute LU for AtA without markers
-    Z = A[:, invmarker].tocsc()
-    ZtZ = (Z.T @ Z).tocsc()
-    ZtZ.eliminate_zeros()
-    LU = sparse.linalg.splu(ZtZ)
-
-    # Solve for x without markers
-    zb = LU.solve(Z.T @ b)
+    LU = sparse.linalg.splu((A.T @ A).tocsc())
+    x = LU.solve(A.T @ b)
 
     # Reconstruct vertices x
-    vertices[invmarker] = zb
+    vertices[invmarker] = x
     vertices[markers[:, 0]] = target_mesh.vertices[markers[:, 1]]
 
     result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
