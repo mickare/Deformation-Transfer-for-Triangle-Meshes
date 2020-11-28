@@ -157,15 +157,15 @@ class TransformEntry:
         """
         self.invV = invV
 
-    def insert_to(self, target: sparse.spmatrix, row: int, factor=1.0):
+    def insert_to(self, target: sparse.spmatrix, row: int):
         # Index
         i0, i1, i2, i3 = self.face
         # Insert by adding
-        tmp = self.invV.T * factor
-        target[row:row + 3, i0] -= np.sum(tmp, axis=0).reshape((3, 1))
-        target[row:row + 3, i1] += tmp[0].reshape((3, 1))
-        target[row:row + 3, i2] += tmp[1].reshape((3, 1))
-        target[row:row + 3, i3] += tmp[2].reshape((3, 1))
+        tmp = self.invV.T
+        target[row:row + 3, i0] = -np.sum(tmp, axis=0).reshape((3, 1))
+        target[row:row + 3, i1] = tmp[0].reshape((3, 1))
+        target[row:row + 3, i2] = tmp[1].reshape((3, 1))
+        target[row:row + 3, i3] = tmp[2].reshape((3, 1))
 
 
 #########################################################
