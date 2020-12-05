@@ -94,7 +94,7 @@ def get_bec(closest_points: np.array, verts: np.array):
 def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarray, target_normals: np.ndarray,
                             max_angle: float = np.radians(90)) -> int:
     for i in range(int(np.ceil(len(target_normals) / 1000))):
-        start = i * 1000
+        start = i * 1000 + 1
         ks = np.arange(start, min(start + 1000, len(target_normals)))
         dist, ind = kd_tree.query(vert, ks)
         angles = np.arccos(np.dot(target_normals[ind], normal))
