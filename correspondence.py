@@ -286,13 +286,13 @@ def construct_smoothness_cost(subject, transforms, adjacent, AEi) -> Tuple[spars
     return AEs, Bs
 
 
-def get_correspondence():
+def get_correspondence(cfg: ConfigFile, plot=False):
     #########################################################
     # Configuration
 
     # Meshes
     # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
-    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
     # Weights of cost functions
     Ws = np.sqrt(1.0)
@@ -342,7 +342,10 @@ def get_correspondence():
     # Start of loop
 
     iterations = len(Wc)
-    total_steps = 4  # Steps per iteration
+    total_steps = 3  # Steps per iteration
+    if plot:
+        total_steps += 1
+
     # Progress bar
     pBar = tqdm.tqdm(total=iterations * total_steps)
 
@@ -402,11 +405,12 @@ def get_correspondence():
         vertices = result.to_fourth_dimension().vertices
 
         #########################################################
-        pbar_next("Plotting")
-        MeshPlots.result_merged(
-            original_source, original_target, result, markers,
-            mesh_kwargs=dict(flatshading=True)
-        )
+        if plot:
+            pbar_next("Plotting")
+            MeshPlots.result_merged(
+                original_source, original_target, result, markers,
+                mesh_kwargs=dict(flatshading=True)
+            )
 
     hashid = hashlib.sha256()
     hashid.update(b"markers")
@@ -420,3 +424,8 @@ def get_correspondence():
     cache = CorrespondenceCache(suffix="_tri_markers").entry(hashid=hashid)
     cache.store(np.array(list(matched_triangles)))
     return matched_triangles
+
+
+if __name__ == "__main__":
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    get_correspondence(cfg, plot=True)
