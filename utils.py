@@ -112,7 +112,7 @@ class DeformedMeshCache:
         return DeformedMeshCache.Entry(self, h.hexdigest(), original)
 
 
-class TriangleMarkersCache:
+class CorrespondenceCache:
     hashid: str = property(fget=lambda self: self._hashid)
 
     def __init__(self, suffix='', prefix='', path='.cache'):
@@ -122,7 +122,7 @@ class TriangleMarkersCache:
 
     @dataclass
     class Entry:
-        parent: "TriangleMarkersCache"
+        parent: "CorrespondenceCache"
         hashid: str
 
         @property
@@ -151,4 +151,4 @@ class TriangleMarkersCache:
 
     def entry(self, hashid: str):
         assert hashid
-        return TriangleMarkersCache.Entry(self, hashid)
+        return CorrespondenceCache.Entry(self, hashid)

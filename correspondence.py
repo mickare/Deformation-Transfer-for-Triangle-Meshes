@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict
-from typing import Tuple, Dict, Set, Optional, List
+from typing import Tuple, Dict, Set
 
 import numpy as np
 import scipy.sparse.linalg
@@ -12,33 +12,7 @@ import meshlib
 from config import ConfigFile
 from render import MeshPlots
 from utils import SparseMatrixCache
-
-#########################################################
-# Configuration
-
-# Meshes
-# cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
-cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-
-# Weights of cost functions
-Ws = np.sqrt(1.0)
-Wi = np.sqrt(0.001)
-Wc = np.sqrt([0.0, 1.0, 200.0, 1000.0, 5000.0])
-
-#########################################################
-# Load meshes
-original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
-original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
-markers = cfg.markers  # List of vertex-tuples (source, target)
-
-target_mesh = original_target.to_fourth_dimension()
-subject = original_source.to_fourth_dimension()
-# Show the source and target
-# MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
-
-#########################################################
-# Precalculate the adjacent triangles in source
-print("Precalculate adjacent list")
+from utils import CorrespondenceCache
 
 
 def compute_adjacent_by_edges(mesh: meshlib.Mesh):
@@ -74,10 +48,6 @@ def compute_adjacent_by_vertices(mesh: meshlib.Mesh):
 
     faces_sorted = sorted([(f, [a for a in adj if a != f]) for f, adj in faces_adjacent.items()], key=lambda e: e[0])
     return [adj for f, adj in faces_sorted]
-
-
-# adjacent = compute_adjacent_by_vertices(original_source)
-adjacent = compute_adjacent_by_edges(original_source)
 
 
 #########################################################
@@ -186,11 +156,6 @@ def get_closest_triangles(
     return triangles
 
 
-#
-# def get_centroids(verts, triangles):
-#     return verts[triangles[:, :3]].mean(axis=1)
-
-
 #########################################################
 # Matrix builder for T Transformation entries
 
@@ -240,17 +205,6 @@ def enforce_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, mar
 
 
 #########################################################
-print("Inverse Triangle Spans")
-invVs = np.linalg.inv(subject.span)
-assert len(subject.faces) == len(invVs)
-
-#########################################################
-# Preparing the transformation matrices
-print("Preparing Transforms")
-transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
-
-
-#########################################################
 # Identity Cost - of transformations
 
 
@@ -285,9 +239,6 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
     Bi = np.tile(np.identity(3, dtype=np.float), (len(subject.faces), 1))
     assert AEi.shape[0] == Bi.shape[0]
     return AEi.tocsr(), Bi
-
-
-AEi, Bi = enforce_markers(*construct_identity_cost(subject, transforms), target_mesh, markers)
 
 
 #########################################################
@@ -335,84 +286,137 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     return AEs, Bs
 
 
-AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent), target_mesh, markers)
+def get_correspondence():
+    #########################################################
+    # Configuration
 
-#########################################################
-print("Building KDTree for closest points")
-# KDTree for closest points in E_c
-kd_tree_target = cKDTree(target_mesh.vertices)
-target_normals = get_vertex_normals(target_mesh.vertices, target_mesh.faces)
-vertices: np.ndarray = np.copy(subject.vertices)
+    # Meshes
+    # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
-#########################################################
-# Start of loop
-
-iterations = len(Wc)
-total_steps = 4  # Steps per iteration
-# Progress bar
-pBar = tqdm.tqdm(total=iterations * total_steps)
-
-for iteration in range(iterations):
-
-    def pbar_next(msg: str):
-        pBar.set_description(f"[{iteration + 1}/{iterations}] {msg}")
-        pBar.update()
-
-
-    Astack = [AEi * Wi, AEs * Ws]
-    Bstack = [Bi * Wi, Bs * Ws]
-
-    # Astack = [AEs * Ws]
-    # Bstack = [Bs * Ws]
+    # Weights of cost functions
+    Ws = np.sqrt(1.0)
+    Wi = np.sqrt(0.001)
+    Wc = np.sqrt([0.0, 1.0, 200.0, 1000.0, 5000.0])
 
     #########################################################
-    pbar_next("Closest Point Costs")
+    # Load meshes
+    original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
+    original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
+    markers = cfg.markers  # List of vertex-tuples (source, target)
 
-    if iteration > 0:
-        AEc = get_aec(len(subject.vertices), len(original_source.vertices))
-        vertices_clipped = vertices[:len(original_source.vertices)]
-        closest_points = get_closest_points(kd_tree_target, vertices_clipped,
-                                            get_vertex_normals(vertices_clipped, subject.faces), target_normals)
-        Bc = get_bec(closest_points, target_mesh.vertices)
-        assert AEc.shape[0] == Bc.shape[0]
-
-        mAEc, mBc = enforce_markers(AEc, Bc, target_mesh, markers)
-        Astack.append(mAEc * Wc[iteration])
-        Bstack.append(mBc * Wc[iteration])
+    target_mesh = original_target.to_fourth_dimension()
+    subject = original_source.to_fourth_dimension()
+    # Show the source and target
+    # MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
 
     #########################################################
-    pbar_next("Combining Costs")
+    # Precalculate the adjacent triangles in source
+    print("Precalculate adjacent list")
 
-    A: sparse.spmatrix = sparse.vstack(Astack, format="csc")
-    A.eliminate_zeros()
-    b = np.concatenate(Bstack)
-
-    #########################################################
-    pbar_next("Solving")
-    A = A.tocsc()
-
-    # Calculate inverse markers for source
-    invmarker = np.setdiff1d(np.arange(len(vertices)), markers[:, 0])
-    assert len(vertices) - len(markers) == len(invmarker)
-    assert A.shape[1] == len(invmarker)
-    assert A.shape[0] == b.shape[0]
-
-    LU = sparse.linalg.splu((A.T @ A).tocsc())
-    x = LU.solve(A.T @ b)
-
-    # Reconstruct vertices x
-    vertices[invmarker] = x
-    vertices[markers[:, 0]] = target_mesh.vertices[markers[:, 1]]
-
-    result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
-                          faces=original_source.faces)
-    vertices = result.to_fourth_dimension().vertices
+    # adjacent = compute_adjacent_by_vertices(original_source)
+    adjacent = compute_adjacent_by_edges(original_source)
 
     #########################################################
-    pbar_next("Plotting")
-    MeshPlots.result_merged(
-        original_source, original_target, result, markers,
-        mesh_kwargs=dict(flatshading=True)
-    )
+    print("Inverse Triangle Spans")
+    invVs = np.linalg.inv(subject.span)
+    assert len(subject.faces) == len(invVs)
 
-matched_triangles = match_triangles(result, target_mesh)
+    #########################################################
+    # Preparing the transformation matrices
+    print("Preparing Transforms")
+    transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
+
+    AEi, Bi = enforce_markers(*construct_identity_cost(subject, transforms), target_mesh, markers)
+
+    AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent), target_mesh, markers)
+
+    #########################################################
+    print("Building KDTree for closest points")
+    # KDTree for closest points in E_c
+    kd_tree_target = cKDTree(target_mesh.vertices)
+    target_normals = get_vertex_normals(target_mesh.vertices, target_mesh.faces)
+    vertices: np.ndarray = np.copy(subject.vertices)
+
+    #########################################################
+    # Start of loop
+
+    iterations = len(Wc)
+    total_steps = 4  # Steps per iteration
+    # Progress bar
+    pBar = tqdm.tqdm(total=iterations * total_steps)
+
+    for iteration in range(iterations):
+
+        def pbar_next(msg: str):
+            pBar.set_description(f"[{iteration + 1}/{iterations}] {msg}")
+            pBar.update()
+
+        Astack = [AEi * Wi, AEs * Ws]
+        Bstack = [Bi * Wi, Bs * Ws]
+
+        # Astack = [AEs * Ws]
+        # Bstack = [Bs * Ws]
+
+        #########################################################
+        pbar_next("Closest Point Costs")
+
+        if iteration > 0:
+            AEc = get_aec(len(subject.vertices), len(original_source.vertices))
+            vertices_clipped = vertices[:len(original_source.vertices)]
+            closest_points = get_closest_points(kd_tree_target, vertices_clipped,
+                                                get_vertex_normals(vertices_clipped, subject.faces), target_normals)
+            Bc = get_bec(closest_points, target_mesh.vertices)
+            assert AEc.shape[0] == Bc.shape[0]
+
+            mAEc, mBc = enforce_markers(AEc, Bc, target_mesh, markers)
+            Astack.append(mAEc * Wc[iteration])
+            Bstack.append(mBc * Wc[iteration])
+
+        #########################################################
+        pbar_next("Combining Costs")
+
+        A: sparse.spmatrix = sparse.vstack(Astack, format="csc")
+        A.eliminate_zeros()
+        b = np.concatenate(Bstack)
+
+        #########################################################
+        pbar_next("Solving")
+        A = A.tocsc()
+
+        # Calculate inverse markers for source
+        invmarker = np.setdiff1d(np.arange(len(vertices)), markers[:, 0])
+        assert len(vertices) - len(markers) == len(invmarker)
+        assert A.shape[1] == len(invmarker)
+        assert A.shape[0] == b.shape[0]
+
+        LU = sparse.linalg.splu((A.T @ A).tocsc())
+        x = LU.solve(A.T @ b)
+
+        # Reconstruct vertices x
+        vertices[invmarker] = x
+        vertices[markers[:, 0]] = target_mesh.vertices[markers[:, 1]]
+
+        result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
+                              faces=original_source.faces)
+        vertices = result.to_fourth_dimension().vertices
+
+        #########################################################
+        pbar_next("Plotting")
+        MeshPlots.result_merged(
+            original_source, original_target, result, markers,
+            mesh_kwargs=dict(flatshading=True)
+        )
+
+    hashid = hashlib.sha256()
+    hashid.update(b"markers")
+    hashid.update(bytes([len(original_source.vertices.shape)]))
+    hashid.update(bytes([len(original_source.faces.shape)]))
+    hashid.update(bytes([len(original_target.vertices.shape)]))
+    hashid.update(bytes([len(original_target.faces.shape)]))
+    hashid = hashid.hexdigest()
+
+    matched_triangles = match_triangles(result, target_mesh)
+    cache = CorrespondenceCache(suffix="_tri_markers").entry(hashid=hashid)
+    cache.store(np.array(list(matched_triangles)))
+    return matched_triangles
