@@ -45,6 +45,9 @@ class Mesh:
         kwargs.setdefault("encoding", "UTF-8")
         return cls.from_pywavefront(pywavefront.Wavefront(file, collect_faces=True, **kwargs))
 
+    def get_centroids(self) -> np.ndarray:
+        return self.vertices[self.faces[:, :3]].mean(axis=1)
+
     def scale(self, factor: float):
         """
         Scale the mesh
@@ -147,6 +150,11 @@ class Mesh:
             vertices=self.vertices[:, shape],
             faces=self.faces
         )
+
+    def normals(self) -> np.ndarray:
+        v1, v2, v3 = self.vertices[self.faces.T][:3]
+        vns = np.cross(v2 - v1, v3 - v1)
+        return (vns.T / np.linalg.norm(vns, axis=1)).T
 
 
 class MeshAdaption:
