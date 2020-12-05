@@ -81,7 +81,7 @@ class Mesh:
         """
         Calculates the triangle span components of each surface with the offset v1
         :return:
-            triangles Nx3x3
+            Tuple of the three triangle spans
         """
         v1, v2, v3 = self.vertices[self.faces.T][:3]
         a = v2 - v1
