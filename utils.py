@@ -129,23 +129,23 @@ class CorrespondenceCache:
         def file(self):
             return os.path.join(self.parent.path, f"{self.parent.prefix}{self.hashid}{self.parent.suffix}.npz")
 
-        def get(self) -> Optional[Set]:
+        def get(self) -> Optional[np.ndarray]:
             file = self.file
             # Try to load file
             if os.path.isfile(file):
                 data = np.load(file)
-                return data["markers"]
+                return data["correspondence"]
             return None
 
-        def store(self, data: Set):
+        def store(self, data: np.ndarray):
             file = self.file
             os.makedirs(os.path.dirname(file), exist_ok=True)
-            np.savez_compressed(file, markers=data)
+            np.savez_compressed(file, correspondence=data)
 
-        def cache(self, func: Callable[[], Set]):
+        def cache(self, func: Callable[..., np.ndarray], *args, **kwargs):
             data = self.get()
             if data is None:
-                data = func()
+                data = func(*args, **kwargs)
                 self.store(data)
             return data
 

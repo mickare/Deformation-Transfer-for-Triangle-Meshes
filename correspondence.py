@@ -68,7 +68,7 @@ def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarr
         ks = np.arange(start, min(start + 1000, len(target_normals)))
         dist, ind = kd_tree.query(vert, ks)
         angles = np.arccos(np.dot(target_normals[ind], normal))
-        angles_cond = angles < max_angle
+        angles_cond = np.abs(angles) < max_angle
         if angles_cond.any():
             return ind[angles_cond][0]
     raise RuntimeError("Could not find any point on the target mesh!")
@@ -81,7 +81,7 @@ def get_closest_points(kd_tree: cKDTree, verts: np.array, vert_normals: np.array
     dists, indicies = kd_tree.query(verts, min(len(target_normals), 200))
     for v, (dist, ind) in enumerate(zip(dists, indicies)):
         angles = np.arccos(np.dot(target_normals[ind], vert_normals[v]))
-        angles_cond = angles < max_angle
+        angles_cond = np.abs(angles) < max_angle
         if angles_cond.any():
             cind = ind[angles_cond][0]
         else:
@@ -92,8 +92,9 @@ def get_closest_points(kd_tree: cKDTree, verts: np.array, vert_normals: np.array
 
 
 def get_vertex_normals(verts: np.array, faces: np.array) -> np.ndarray:
-    candidates = [set() for i in range(len(verts))]
-    for n, (f0, f1, f2, f3) in enumerate(faces):
+    max_index = np.max(faces[:, :3]) + 1
+    candidates = [set() for i in range(max_index)]
+    for n, (f0, f1, f2) in enumerate(faces[:, :3]):
         candidates[f0].add(n)
         candidates[f1].add(n)
         candidates[f2].add(n)
@@ -104,8 +105,11 @@ def get_vertex_normals(verts: np.array, faces: np.array) -> np.ndarray:
     """
     triangle_normals = get_triangle_normals(verts, faces)
     triangle_normals_per_vertex = [[triangle_normals[i] for i in indices] for indices in candidates]
-    vertex_normals = [np.mean(normals, 0) if normals else np.zeros(3, float) for normals in triangle_normals_per_vertex]
-    return np.array(vertex_normals)
+    vertex_normals = np.array([
+        np.mean(normals, 0) if normals else np.zeros(3, float) for normals in triangle_normals_per_vertex
+    ])
+    assert len(vertex_normals) == max_index
+    return (vertex_normals.T / np.linalg.norm(vertex_normals, axis=1)).T
 
 
 def get_triangle_normals(verts: np.array, faces: np.array):
@@ -118,7 +122,7 @@ def max_triangle_length(mesh: meshlib.Mesh):
     return max(np.max(np.linalg.norm(a, axis=1)), np.max(np.linalg.norm(b, axis=1)))
 
 
-def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh):
+def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh) -> Set[Tuple[int, int]]:
     source_centroids = source.get_centroids()
     target_centroids = target.get_centroids()
     source_normals = source.normals()
@@ -286,7 +290,8 @@ def construct_smoothness_cost(subject, transforms, adjacent, AEi) -> Tuple[spars
     return AEs, Bs
 
 
-def get_correspondence(cfg: ConfigFile, plot=False):
+def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, markers: np.ndarray, plot=False) \
+        -> np.ndarray:
     #########################################################
     # Configuration
 
@@ -300,13 +305,9 @@ def get_correspondence(cfg: ConfigFile, plot=False):
     Wc = np.sqrt([0.0, 1.0, 200.0, 1000.0, 5000.0])
 
     #########################################################
-    # Load meshes
-    original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
-    original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
-    markers = cfg.markers  # List of vertex-tuples (source, target)
 
-    target_mesh = original_target.to_fourth_dimension()
-    subject = original_source.to_fourth_dimension()
+    source = source_org.to_fourth_dimension()
+    target = target_org.to_fourth_dimension()
     # Show the source and target
     # MeshPlots.side_by_side([original_source, original_target]).show(renderer="browser")
 
@@ -314,29 +315,29 @@ def get_correspondence(cfg: ConfigFile, plot=False):
     # Precalculate the adjacent triangles in source
     print("Precalculate adjacent list")
 
-    # adjacent = compute_adjacent_by_vertices(original_source)
-    adjacent = compute_adjacent_by_edges(original_source)
+    # adjacent = compute_adjacent_by_vertices(source_org)
+    adjacent = compute_adjacent_by_edges(source_org)
 
     #########################################################
     print("Inverse Triangle Spans")
-    invVs = np.linalg.inv(subject.span)
-    assert len(subject.faces) == len(invVs)
+    invVs = np.linalg.inv(source.span)
+    assert len(source.faces) == len(invVs)
 
     #########################################################
     # Preparing the transformation matrices
     print("Preparing Transforms")
-    transforms = [TransformEntry(f, invV) for f, invV in zip(subject.faces, invVs)]
+    transforms = [TransformEntry(f, invV) for f, invV in zip(source.faces, invVs)]
 
-    AEi, Bi = enforce_markers(*construct_identity_cost(subject, transforms), target_mesh, markers)
+    AEi, Bi = enforce_markers(*construct_identity_cost(source, transforms), target, markers)
 
-    AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent, AEi), target_mesh, markers)
+    AEs, Bs = enforce_markers(*construct_smoothness_cost(source, transforms, adjacent, AEi), target, markers)
 
     #########################################################
     print("Building KDTree for closest points")
     # KDTree for closest points in E_c
-    kd_tree_target = cKDTree(target_mesh.vertices)
-    target_normals = get_vertex_normals(target_mesh.vertices, target_mesh.faces)
-    vertices: np.ndarray = np.copy(subject.vertices)
+    kd_tree_target = cKDTree(target_org.vertices)
+    target_normals = get_vertex_normals(target_org.vertices, target_org.faces)
+    vertices: np.ndarray = np.copy(source.vertices)
 
     #########################################################
     # Start of loop
@@ -364,15 +365,15 @@ def get_correspondence(cfg: ConfigFile, plot=False):
         #########################################################
         pbar_next("Closest Point Costs")
 
-        if iteration > 0:
-            AEc = get_aec(len(subject.vertices), len(original_source.vertices))
-            vertices_clipped = vertices[:len(original_source.vertices)]
+        if iteration > 0 and Wc[iteration] != 0:
+            AEc = get_aec(len(source.vertices), len(source_org.vertices))
+            vertices_clipped = vertices[:len(source_org.vertices)]
             closest_points = get_closest_points(kd_tree_target, vertices_clipped,
-                                                get_vertex_normals(vertices_clipped, subject.faces), target_normals)
-            Bc = get_bec(closest_points, target_mesh.vertices)
+                                                get_vertex_normals(vertices_clipped, source_org.faces), target_normals)
+            Bc = get_bec(closest_points, target.vertices)
             assert AEc.shape[0] == Bc.shape[0]
 
-            mAEc, mBc = enforce_markers(AEc, Bc, target_mesh, markers)
+            mAEc, mBc = enforce_markers(AEc, Bc, target, markers)
             Astack.append(mAEc * Wc[iteration])
             Bstack.append(mBc * Wc[iteration])
 
@@ -394,38 +395,49 @@ def get_correspondence(cfg: ConfigFile, plot=False):
         assert A.shape[0] == b.shape[0]
 
         LU = sparse.linalg.splu((A.T @ A).tocsc())
+        b+=0.01
         x = LU.solve(A.T @ b)
 
         # Reconstruct vertices x
         vertices[invmarker] = x
-        vertices[markers[:, 0]] = target_mesh.vertices[markers[:, 1]]
+        vertices[markers[:, 0]] = target.vertices[markers[:, 1]]
 
-        result = meshlib.Mesh(vertices=vertices[:len(original_source.vertices)],
-                              faces=original_source.faces)
+        result = meshlib.Mesh(vertices=vertices[:len(source_org.vertices)],
+                              faces=source_org.faces)
         vertices = result.to_fourth_dimension().vertices
 
         #########################################################
         if plot:
             pbar_next("Plotting")
-            MeshPlots.result_merged(
-                original_source, original_target, result, markers,
+            MeshPlots.plot_result_merged(
+                source_org, target_org, result, markers,
                 mesh_kwargs=dict(flatshading=True)
             )
+    return np.array(list(match_triangles(result, target)))
 
+
+def get_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, markers: np.ndarray,
+                       plot=False) -> np.ndarray:
     hashid = hashlib.sha256()
-    hashid.update(b"markers")
-    hashid.update(bytes([len(original_source.vertices.shape)]))
-    hashid.update(bytes([len(original_source.faces.shape)]))
-    hashid.update(bytes([len(original_target.vertices.shape)]))
-    hashid.update(bytes([len(original_target.faces.shape)]))
+    hashid.update(b"correspondence")
+    hashid.update(markers.data)
+    hashid.update(source_org.vertices.data)
+    hashid.update(source_org.faces.data)
+    hashid.update(target_org.vertices.data)
+    hashid.update(target_org.faces.data)
     hashid = hashid.hexdigest()
 
-    matched_triangles = match_triangles(result, target_mesh)
     cache = CorrespondenceCache(suffix="_tri_markers").entry(hashid=hashid)
-    cache.store(np.array(list(matched_triangles)))
+    matched_triangles = cache.cache(compute_correspondence, source_org, target_org, markers, plot=plot)
     return matched_triangles
 
 
 if __name__ == "__main__":
     cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    get_correspondence(cfg, plot=True)
+    # Load meshes
+    source_org = meshlib.Mesh.from_file_obj(cfg.source.reference)
+    target_org = meshlib.Mesh.from_file_obj(cfg.target.reference)
+    markers = cfg.markers  # List of vertex-tuples (source, target)
+
+    corres = compute_correspondence(source_org, target_org, markers, plot=True)
+    MeshPlots.plot_correspondence(source_org, target_org, corres)

@@ -113,8 +113,8 @@ class MeshPlots:
         return vis
 
     @classmethod
-    def result_merged(cls, source: Mesh, target: Mesh, result: Mesh, markers: List[Tuple[int, int]],
-                      mesh_kwargs: Optional[Dict[str, Any]] = None):
+    def plot_result_merged(cls, source: Mesh, target: Mesh, result: Mesh, markers: List[Tuple[int, int]],
+                           mesh_kwargs: Optional[Dict[str, Any]] = None):
         mesh_kwargs = mesh_kwargs or {}
 
         vis = BrowserVisualizer()
@@ -169,6 +169,53 @@ class MeshPlots:
             name="Vertex Target"
         )
         vis.show(renderer="browser")
+
+    @classmethod
+    def plot_correspondence(cls, source: Mesh, target: Mesh, correspondence: np.ndarray):
+        assert correspondence.shape[1] == 2
+
+        vis = BrowserVisualizer()
+        vis.add_mesh(source,
+                     name="Source",
+                     color="red",
+                     opacity=0.025,
+                     # text=[f"<b>Vertex:</b> {n}" for n in range(len(target.vertices))]
+                     hoverinfo='skip',
+                     )
+        vis.add_mesh(target,
+                     name="Target",
+                     color="blue",
+                     opacity=0.025,
+                     # text=[f"<b>Vertex:</b> {n}" for n in range(len(target.vertices))]
+                     hoverinfo='skip',
+                     )
+        scent = source.get_centroids()
+        tcent = target.get_centroids()
+
+        scor = scent[correspondence.T[0]]
+        tcor = tcent[correspondence.T[1]]
+        lengths = np.linalg.norm(tcor - scor, axis=1)
+
+        corres = np.array([e for s,t in zip(scor, tcor) for e in (s, t, (np.nan, np.nan, np.nan))][:-1])
+        colors = np.array([c for l in lengths for c in (l, l, l)][:-1])
+
+        vis.add_scatter(
+            corres,
+            marker=dict(
+                line=dict(
+                    color=colors,
+                    colorscale="magma",
+                    cauto=True
+                ),
+                # size=3,
+                opacity=0.5,
+                # symbol='x'
+            ),
+            mode="lines",
+            name="Correspondence"
+        )
+        vis.show(renderer="browser")
+
 
 
 def plot_example2():
