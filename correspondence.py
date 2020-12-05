@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict
-from typing import Tuple, Dict, Set
+from typing import Tuple, Dict, Set, Optional, List
 
 import numpy as np
 import scipy.sparse.linalg
@@ -161,28 +161,28 @@ def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh):
     return triangles
 
 
-def get_closest_triangles(source_normals, target_normals, source_centroids, target_centroids, radius: float):
+def get_closest_triangles(
+        source_normals: np.ndarray,
+        target_normals: np.ndarray,
+        source_centroids: np.ndarray,
+        target_centroids: np.ndarray,
+        max_angle: float = np.radians(90),
+        k: int = 200,
+        radius: float = np.inf
+) -> Set[Tuple[int, int]]:
     assert len(source_normals) == len(source_centroids)
     assert len(target_normals) == len(target_centroids)
     triangles = set()
     kd_tree = cKDTree(target_centroids)
-    max_angle = np.radians(90)
-    for t in range(len(source_centroids)):
-        valid = False
-        i = min(len(target_centroids), 200)
-        while not valid:
-            neighbours = kd_tree.query(source_centroids[t], i)
 
-            for n in neighbours[1]:
-                angle = np.arccos(np.dot(source_normals[t], target_normals[n]))
-                if angle < max_angle:
-                    valid = True
-                    triangles.add((t, n))
-                    break
-            i += 1000
-        # if not valid:
-        #     triangles.add((t, neighbours[1][0]))  # ignore 90 degree restriction if no valid triangle exists
-        #     break
+    dists, indicies = kd_tree.query(source_centroids, min(len(target_centroids), k), distance_upper_bound=radius)
+    for t, (dist, ind) in enumerate(zip(dists, indicies)):
+        angles = np.arccos(np.dot(target_normals[ind], source_normals[t]))
+        angles_cond = angles < max_angle
+        if angles_cond.any():
+            cind = ind[angles_cond][0]
+            triangles.add((t, cind))
+
     return triangles
 
 
