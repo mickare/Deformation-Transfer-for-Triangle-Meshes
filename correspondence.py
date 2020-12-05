@@ -286,13 +286,13 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     return AEs, Bs
 
 
-def get_correspondence(plot=False):
+def get_correspondence(cfg: ConfigFile, plot=False):
     #########################################################
     # Configuration
 
     # Meshes
     # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
-    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
     # Weights of cost functions
     Ws = np.sqrt(1.0)
@@ -424,3 +424,8 @@ def get_correspondence(plot=False):
     cache = CorrespondenceCache(suffix="_tri_markers").entry(hashid=hashid)
     cache.store(np.array(list(matched_triangles)))
     return matched_triangles
+
+
+if __name__ == "__main__":
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    get_correspondence(cfg, plot=True)
