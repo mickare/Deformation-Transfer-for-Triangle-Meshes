@@ -286,7 +286,7 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     return AEs, Bs
 
 
-def get_correspondence():
+def get_correspondence(plot=False):
     #########################################################
     # Configuration
 
@@ -342,7 +342,10 @@ def get_correspondence():
     # Start of loop
 
     iterations = len(Wc)
-    total_steps = 4  # Steps per iteration
+    total_steps = 3  # Steps per iteration
+    if plot:
+        total_steps += 1
+
     # Progress bar
     pBar = tqdm.tqdm(total=iterations * total_steps)
 
@@ -402,11 +405,12 @@ def get_correspondence():
         vertices = result.to_fourth_dimension().vertices
 
         #########################################################
-        pbar_next("Plotting")
-        MeshPlots.result_merged(
-            original_source, original_target, result, markers,
-            mesh_kwargs=dict(flatshading=True)
-        )
+        if plot:
+            pbar_next("Plotting")
+            MeshPlots.result_merged(
+                original_source, original_target, result, markers,
+                mesh_kwargs=dict(flatshading=True)
+            )
 
     hashid = hashlib.sha256()
     hashid.update(b"markers")
