@@ -169,7 +169,7 @@ def get_closest_triangles(source_normals, target_normals, source_centroids, targ
 
 
 def get_centroids(verts, triangles):
-    return verts[triangles[:3]].mean(axis=1)
+    return verts[triangles[:,:3]].mean(axis=1)
 
 
 #########################################################
