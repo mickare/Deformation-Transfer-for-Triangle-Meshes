@@ -40,11 +40,8 @@ source_pose_mesh = original_transformed_source.to_fourth_dimension()
 def compute_s():
     v = source_pose_mesh.span
     inv_v = np.linalg.inv(source_mesh.span)
-    # s = np.zeros((len(markers), 3, 3))
-    s = np.matmul(v[markers[:][0]], inv_v[markers[:][1]])
+    s = np.matmul(v, inv_v)
     return s
-    # for n, m in enumerate(markers):
-    #     s[n] = np.matmul(v[m[0]], inv_v[m[1]])
 
 
 s = compute_s()
