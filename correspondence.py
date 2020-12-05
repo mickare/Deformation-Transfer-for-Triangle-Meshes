@@ -395,7 +395,6 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
         assert A.shape[0] == b.shape[0]
 
         LU = sparse.linalg.splu((A.T @ A).tocsc())
-        b+=0.01
         x = LU.solve(A.T @ b)
 
         # Reconstruct vertices x
