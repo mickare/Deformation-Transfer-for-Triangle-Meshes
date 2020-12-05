@@ -166,7 +166,7 @@ def get_correspondence():
         return triangles
 
     def get_centroids(verts, triangles):
-        return verts[triangles[:3]].mean(axis=1)
+        return verts[triangles[:, :3]].mean(axis=1)
 
     #########################################################
     # Matrix builder for T Transformation entries
