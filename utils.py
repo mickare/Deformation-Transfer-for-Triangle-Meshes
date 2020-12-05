@@ -3,7 +3,7 @@ import os
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from functools import reduce
-from typing import Tuple, Callable, Optional, Any, Union, Sequence
+from typing import Tuple, Callable, Optional, Any, Union, Sequence, Set
 
 import numpy as np
 from scipy import sparse
@@ -110,3 +110,45 @@ class DeformedMeshCache:
         for s in salts:
             h.update(s)
         return DeformedMeshCache.Entry(self, h.hexdigest(), original)
+
+
+class TriangleMarkersCache:
+    hashid: str = property(fget=lambda self: self._hashid)
+
+    def __init__(self, suffix='', prefix='', path='.cache'):
+        self.suffix = suffix
+        self.prefix = prefix
+        self.path = path
+
+    @dataclass
+    class Entry:
+        parent: "TriangleMarkersCache"
+        hashid: str
+
+        @property
+        def file(self):
+            return os.path.join(self.parent.path, f"{self.parent.prefix}{self.hashid}{self.parent.suffix}.npz")
+
+        def get(self) -> Optional[Set]:
+            file = self.file
+            # Try to load file
+            if os.path.isfile(file):
+                data = np.load(file)
+                return data["markers"]
+            return None
+
+        def store(self, data: Set):
+            file = self.file
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            np.savez_compressed(file, markers=data)
+
+        def cache(self, func: Callable[[], Set]):
+            data = self.get()
+            if data is None:
+                data = func()
+                self.store(data)
+            return data
+
+    def entry(self, hashid: str):
+        assert hashid
+        return TriangleMarkersCache.Entry(self, hashid)
