@@ -245,7 +245,7 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
 # Smoothness Cost - of differences to adjacent transformations
 
 
-def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spmatrix, np.ndarray]:
+def construct_smoothness_cost(subject, transforms, adjacent, AEi) -> Tuple[sparse.spmatrix, np.ndarray]:
     """ Construct the terms for the Smoothness cost"""
     count_adjacent = sum(len(a) for a in adjacent)
     shape = (
@@ -329,7 +329,7 @@ def get_correspondence():
 
     AEi, Bi = enforce_markers(*construct_identity_cost(subject, transforms), target_mesh, markers)
 
-    AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent), target_mesh, markers)
+    AEs, Bs = enforce_markers(*construct_smoothness_cost(subject, transforms, adjacent, AEi), target_mesh, markers)
 
     #########################################################
     print("Building KDTree for closest points")
