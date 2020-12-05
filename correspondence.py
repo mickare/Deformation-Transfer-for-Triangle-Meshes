@@ -96,7 +96,7 @@ def get_closest_points(kd_tree: KDTree, verts: np.array, vert_normals: np.array,
     max_angle = np.radians(90)
     for v in range(len(verts)):
         valid = False
-        i = 200
+        i = min(len(target_normals), 200)
         while not valid:
             neighbours = kd_tree.query(verts[v], i)
             for n in neighbours[1]:
@@ -133,6 +133,47 @@ def get_vertex_normals(verts: np.array, faces: np.array):
 def get_triangle_normals(verts: np.array, faces: np.array):
     vns = np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]])
     return (vns.T / np.linalg.norm(vns, axis=1)).T
+
+
+def match_triangles(source_verts, target_verts, source_triangles, target_triangles, target_normals):
+    source_centroids = get_centroids(source_verts, source_triangles)
+    target_centroids = get_centroids(target_verts, target_triangles)
+    source_normals = get_triangle_normals(source_verts, source_triangles)
+    triangles = get_closest_triangles(source_normals, target_normals, source_centroids, target_centroids)
+    tmp_triangles = get_closest_triangles(target_normals, source_normals, target_centroids, source_centroids)
+    tmp_triangles = [(x[1], x[0]) for x in tmp_triangles]
+    triangles.update(set(tmp_triangles))
+    return triangles
+
+
+def get_closest_triangles(source_normals, target_normals, source_centroids, target_centroids):
+    triangles = set()
+    kd_tree = KDTree(target_centroids)
+    max_angle = np.radians(90)
+    for t in range(len(source_centroids)):
+        valid = False
+        i = min(len(target_centroids), 200)
+        while not valid:
+            neighbours = kd_tree.query(source_centroids[t], i)
+            for n in neighbours[1]:
+                angle = np.arccos(np.dot(source_normals[t], target_normals[n]))
+                if angle < max_angle:
+                    valid = True
+                    triangles.add((t, n))
+                    break
+            i += 1000
+            if i > len(target_centroids):
+                triangles.add((t, neighbours[1][0]))  # ignore 90 degree restriction if no valid triangle exists
+                break
+    return triangles
+
+
+def get_centroids(verts, triangles):
+    centroids = []
+    for t in triangles:
+        c = (verts[t[0]] + verts[t[1]] + verts[t[2]]) / 3
+        centroids.append(c)
+    return centroids
 
 
 #########################################################
@@ -357,3 +398,5 @@ for iteration in range(iterations):
         original_source, original_target, result, markers,
         mesh_kwargs=dict(flatshading=True)
     )
+
+matched_triangles = match_triangles(vertices, target_mesh.vertices, original_source.faces, target_mesh.faces, target_normals)
