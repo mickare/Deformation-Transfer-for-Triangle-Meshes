@@ -106,9 +106,8 @@ def get_closest_points(kd_tree: KDTree, verts: np.array, vert_normals: np.array,
                     closest_points.append(n)
                     break
             i += 1000
-            if i > len(verts):
-                closest_points.append(
-                    kd_tree.query(verts[v], 1)[1])  # ignore 90 degree restriction if no valid point exists
+            if i > len(target_normals):
+                closest_points.append(neighbours[1][0])  # ignore 90 degree restriction if no valid point exists
                 break
     return closest_points
 
