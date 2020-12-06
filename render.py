@@ -113,7 +113,7 @@ class MeshPlots:
         return vis
 
     @classmethod
-    def plot_result_merged(cls, source: Mesh, target: Mesh, result: Mesh, markers: List[Tuple[int, int]],
+    def plot_result_merged(cls, source: Mesh, target: Mesh, result: Mesh, markers: np.ndarray,
                            mesh_kwargs: Optional[Dict[str, Any]] = None):
         mesh_kwargs = mesh_kwargs or {}
 
