@@ -9,7 +9,7 @@ from meshlib import Mesh
 from render import BrowserVisualizer
 
 
-def plot_result(source: Mesh, target: Mesh, vertices:bool =False, markers: Optional[np.ndarray] = None) -> Figure:
+def plot(source: Mesh, target: Mesh, vertices:bool =False, markers: Optional[np.ndarray] = None) -> Figure:
     fig = make_subplots(
         rows=1, cols=2,
         specs=[[{"type": "scene"}, {"type": "scene"}]],
@@ -168,4 +168,4 @@ if __name__ == "__main__":
     target = Mesh.from_file_obj(cfg.target.reference)
     markers = cfg.markers
 
-    plot_result(source, target).show(renderer="browser")
+    plot(source, target).show(renderer="browser")

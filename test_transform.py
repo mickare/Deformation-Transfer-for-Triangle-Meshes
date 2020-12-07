@@ -1,5 +1,5 @@
 from config import ConfigFile
-from plot_result import plot_result
+import plot_result
 from utils import CorrespondenceCache
 import meshlib
 import hashlib
@@ -65,7 +65,6 @@ def build_mapping():
     return Am.tocsc(), Bm
 
 
-
 faces_unique = np.unique(target_mesh.faces[mapping[:, 1]].flatten())
 missing_verts = np.setdiff1d(np.arange(len(target_mesh.vertices)), faces_unique)
 verts_index = np.sort(faces_unique)
@@ -94,4 +93,4 @@ vertices[verts_index] = x
 
 print("plot")
 result = meshlib.Mesh(vertices=vertices[:len(original_target.vertices)], faces=original_target.faces[mapping[:, 1]])
-plot_result(pose_mesh, result).show(renderer="browser")
+plot_result.plot(pose_mesh, result).show(renderer="browser")
