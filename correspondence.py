@@ -127,7 +127,7 @@ def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh) -> Set[Tuple[int
     target_centroids = target.get_centroids()
     source_normals = source.normals()
     target_normals = target.normals()
-    radius = max(max_triangle_length(source), max_triangle_length(target)) * 2
+    radius = max(max_triangle_length(source), max_triangle_length(target)) * 3
     triangles = get_closest_triangles(source_normals, target_normals, source_centroids, target_centroids, radius)
     tmp_triangles = get_closest_triangles(target_normals, source_normals, target_centroids, source_centroids,
                                           radius)
