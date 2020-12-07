@@ -9,37 +9,43 @@ from scipy import sparse
 import scipy.sparse.linalg
 import tqdm
 
-cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+# cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
 corr_markers = cfg.markers  # List of vertex-tuples (source, target)
 
-# corr_markers = np.ascontiguousarray(np.array((corr_markers[:, 0], corr_markers[:, 0]), dtype=np.int).T)
+identity = False
+if identity:
+    corr_markers = np.ascontiguousarray(np.array((corr_markers[:, 0], corr_markers[:, 0]), dtype=np.int).T)
 
 #########################################################
 # Load meshes
 
 original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
-original_transformed_source = meshlib.Mesh.from_file_obj(cfg.source.poses[0])
+original_pose = meshlib.Mesh.from_file_obj(cfg.source.poses[0])
 original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
-# original_target = meshlib.Mesh.from_file_obj(cfg.source.reference)
+if identity:
+    original_target = meshlib.Mesh.from_file_obj(cfg.source.reference)
 
 source_mesh = original_source.to_fourth_dimension()
 target_mesh = original_target.to_fourth_dimension()
-pose_mesh = original_transformed_source.to_fourth_dimension()
+pose_mesh = original_pose.to_fourth_dimension()
 
 #########################################################
 # Load correspondence from cache if possible
 mapping = get_correspondence(original_source, original_target, corr_markers, plot=True)
+
+import render
+
+render.MeshPlots.plot_correspondence(original_source, original_target, mapping)
 
 
 #########################################################
 # Prepare transformation matrices
 
 def compute_s():
-    v = source_mesh.span
-    inv_v = np.linalg.inv(pose_mesh.span)
-    vvinv = v.transpose((0,2,1)) @ inv_v.transpose((0,2,1))
-    return vvinv[mapping[:, 0]]
+    # Si * V = V~  ==>>  Si = V~ * V^-1
+    return np.linalg.inv(source_mesh.span) @ pose_mesh.span
 
 
 inv_target_span = np.linalg.inv(target_mesh.span)
@@ -47,9 +53,9 @@ inv_target_span = np.linalg.inv(target_mesh.span)
 
 # Mapping matrix
 def build_mapping():
-    s = compute_s()
+    Bm = np.concatenate(compute_s()[mapping[:, 0]])
     Am = sparse.dok_matrix((
-        s.shape[0] * 3,
+        Bm.shape[0],
         len(target_mesh.vertices)
     ), dtype=np.float)
 
@@ -60,9 +66,7 @@ def build_mapping():
             tqdm.tqdm(transforms, desc="Building Mapping")):  # type: int, TransformEntry
         Ti.insert_to(Am, row=index * 3)
 
-    Bm = np.concatenate(s)
-
-    return Am, Bm
+    return Am.tocsc(), Bm
 
 
 # Smoothness over missing mappings
@@ -95,7 +99,7 @@ Am, Bm = build_mapping()
 As, Bs = build_missing()
 
 Wm = 1.0
-Ws = 1.0
+Ws = 0.0001
 Astack = [Am * Wm, As * Ws]
 Bstack = [Bm * Wm, Bs * Ws]
 
