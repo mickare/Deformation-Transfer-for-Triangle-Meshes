@@ -249,7 +249,7 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
 # Smoothness Cost - of differences to adjacent transformations
 
 
-def construct_smoothness_cost(subject, transforms, adjacent, AEi) -> Tuple[sparse.spmatrix, np.ndarray]:
+def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spmatrix, np.ndarray]:
     """ Construct the terms for the Smoothness cost"""
     count_adjacent = sum(len(a) for a in adjacent)
     shape = (
@@ -280,7 +280,7 @@ def construct_smoothness_cost(subject, transforms, adjacent, AEi) -> Tuple[spars
         AEs = (lhs - rhs)
         assert row == AEs.shape[0]
         AEs = AEs.tocsr()
-        AEi.eliminate_zeros()
+        AEs.eliminate_zeros()
         cache.store(AEs)
     else:
         print("Reusing Smoothness Cost")
@@ -330,7 +330,7 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
 
     AEi, Bi = enforce_markers(*construct_identity_cost(source, transforms), target, markers)
 
-    AEs, Bs = enforce_markers(*construct_smoothness_cost(source, transforms, adjacent, AEi), target, markers)
+    AEs, Bs = enforce_markers(*construct_smoothness_cost(source, transforms, adjacent), target, markers)
 
     #########################################################
     print("Building KDTree for closest points")
