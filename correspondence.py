@@ -75,7 +75,7 @@ def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarr
 
 
 def get_closest_points(kd_tree: cKDTree, verts: np.array, vert_normals: np.array, target_normals: np.array,
-                       max_angle: float = np.radians(90), ks=100) -> np.ndarray:
+                       max_angle: float = np.radians(90), ks=200) -> np.ndarray:
     assert len(verts) == len(vert_normals)
     closest_points: List[Tuple[int, int]] = []
     dists, indicies = kd_tree.query(verts, min(len(target_normals), ks))
@@ -125,7 +125,7 @@ def max_triangle_length(mesh: meshlib.Mesh):
     return max(np.max(np.linalg.norm(a, axis=1)), np.max(np.linalg.norm(b, axis=1)))
 
 
-def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh, factor=10) -> List[Tuple[int, int]]:
+def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh, factor=2) -> List[Tuple[int, int]]:
     source_centroids = source.get_centroids()
     target_centroids = target.get_centroids()
     source_normals = source.normals()
@@ -144,7 +144,7 @@ def get_closest_triangles(
         source_centroids: np.ndarray,
         target_centroids: np.ndarray,
         max_angle: float = np.radians(90),
-        k: int = 200,
+        k: int = 500,
         radius: float = np.inf
 ) -> Set[Tuple[int, int]]:
     assert len(source_normals) == len(source_centroids)
@@ -153,12 +153,12 @@ def get_closest_triangles(
     kd_tree = cKDTree(target_centroids)
 
     dists, indicies = kd_tree.query(source_centroids, min(len(target_centroids), k), distance_upper_bound=radius)
-    for t, (dist, ind) in enumerate(zip(dists, indicies)):
-        angles = np.arccos(np.dot(target_normals[ind], source_normals[t]))
+    for index_source, (dist, ind) in enumerate(zip(dists, indicies)):
+        angles = np.arccos(np.dot(target_normals[ind], source_normals[index_source]))
         angles_cond = angles < max_angle
         if angles_cond.any():
-            cind = ind[angles_cond][0]
-            triangles.add((t, cind))
+            index_target = ind[angles_cond][0]
+            triangles.add((index_source, index_target))
 
     return triangles
 
@@ -303,9 +303,9 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
     # Weights of cost functions
-    Ws = np.sqrt(1.0)
-    Wi = np.sqrt(0.001)
-    Wc = np.sqrt([0.0, 1.0, 200.0, 1000.0, 5000.0])
+    Ws = 1.0
+    Wi = 0.001
+    Wc = [0, 10, 50, 250, 1000, 2000, 3000, 5000]
 
     #########################################################
 
