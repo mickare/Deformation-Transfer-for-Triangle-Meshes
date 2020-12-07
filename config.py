@@ -1,8 +1,10 @@
 import os
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Iterator
 
 import numpy as np
 import yaml
+
+import meshlib
 
 
 def get_markers(file: str = "models/lowpoly/markers.txt"):
@@ -27,6 +29,13 @@ class ModelConfig:
         if basepath:
             self.reference = os.path.join(basepath, self.reference)
             self.poses = [os.path.join(basepath, p) for p in self.poses]
+
+    def load_reference(self) -> meshlib.Mesh:
+        return meshlib.Mesh.from_file_obj(self.reference)
+
+    def load_poses(self) -> Iterator[meshlib.Mesh]:
+        for p in self.poses:
+            yield meshlib.Mesh.from_file_obj(p)
 
 
 class ConfigFile:
