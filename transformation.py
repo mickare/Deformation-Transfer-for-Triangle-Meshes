@@ -29,10 +29,10 @@ hashid.update(bytes([len(original_target.vertices.shape)]))
 hashid.update(bytes([len(original_target.faces.shape)]))
 hashid = hashid.hexdigest()
 cache = CorrespondenceCache(suffix="_tri_markers").entry(hashid=hashid)
-markers = cache.get()
+mapping = cache.get()
 
-if markers is None:
-    markers = get_correspondence(original_source, original_target, corr_markers)
+if mapping is None:
+    mapping = get_correspondence(original_source, original_target, corr_markers)
 else:
     print("Reusing Correspondence")
 
@@ -45,7 +45,7 @@ def compute_s():
     v = source_pose_mesh.span
     inv_v = np.linalg.inv(source_mesh.span)
     vvinv = np.matmul(v, inv_v)
-    s = np.transpose(vvinv[markers[:, 0]], axes=[0, 2, 1])
+    s = np.transpose(vvinv[mapping[:, 0]], axes=[0, 2, 1])
     return s
 
 
@@ -58,7 +58,7 @@ shape = (
 )
 
 A = sparse.dok_matrix(shape, dtype=np.float)
-transforms = [TransformEntry(f, invV) for f, invV in zip(target_mesh.faces[markers[:, 1]], inv_v_target[markers[:, 1]])]
+transforms = [TransformEntry(f, invV) for f, invV in zip(target_mesh.faces[mapping[:, 1]], inv_v_target[mapping[:, 1]])]
 for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Transformation Matrix")):  # type: int, TransformEntry
     Ti.insert_to(A, row=index * 3)
 b = np.concatenate(s)
@@ -69,4 +69,4 @@ A = A.tocsc()
 A.eliminate_zeros()
 
 LU = sparse.linalg.splu((A.T @ A).tocsc())
-x = LU.solve(A.T @ s)
+x = LU.solve(A.T @ b)
