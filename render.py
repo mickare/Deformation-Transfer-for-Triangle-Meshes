@@ -196,7 +196,7 @@ class MeshPlots:
         tcor = tcent[correspondence.T[1]]
         lengths = np.linalg.norm(tcor - scor, axis=1)
 
-        corres = np.array([e for s,t in zip(scor, tcor) for e in (s, t, (np.nan, np.nan, np.nan))][:-1])
+        corres = np.array([e for s, t in zip(scor, tcor) for e in (s, t, (np.nan, np.nan, np.nan))][:-1])
         colors = np.array([c for l in lengths for c in (l, l, l)][:-1])
 
         vis.add_scatter(
@@ -215,7 +215,6 @@ class MeshPlots:
             name="Correspondence"
         )
         vis.show(renderer="browser")
-
 
 
 def plot_example2():
