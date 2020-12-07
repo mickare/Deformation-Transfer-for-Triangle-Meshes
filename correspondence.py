@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict
-from typing import Tuple, Dict, Set
+from typing import Tuple, Dict, Set, List
 
 import numpy as np
 import scipy.sparse.linalg
@@ -125,17 +125,17 @@ def max_triangle_length(mesh: meshlib.Mesh):
     return max(np.max(np.linalg.norm(a, axis=1)), np.max(np.linalg.norm(b, axis=1)))
 
 
-def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh) -> Set[Tuple[int, int]]:
+def match_triangles(source: meshlib.Mesh, target: meshlib.Mesh, factor=10) -> List[Tuple[int, int]]:
     source_centroids = source.get_centroids()
     target_centroids = target.get_centroids()
     source_normals = source.normals()
     target_normals = target.normals()
-    radius = max(max_triangle_length(source), max_triangle_length(target)) * 3
+    radius = max(max_triangle_length(source), max_triangle_length(target)) * factor
     triangles = get_closest_triangles(source_normals, target_normals, source_centroids, target_centroids, radius)
     tmp_triangles = get_closest_triangles(target_normals, source_normals, target_centroids, source_centroids,
                                           radius)
     triangles.update((t[1], t[0]) for t in tmp_triangles)
-    return triangles
+    return list(triangles)
 
 
 def get_closest_triangles(
@@ -416,7 +416,7 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
                 source_org, target_org, result, markers,
                 mesh_kwargs=dict(flatshading=True)
             )
-    return np.array(list(match_triangles(result, target)))
+    return np.array(match_triangles(result, target))
 
 
 def get_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, markers: np.ndarray,
