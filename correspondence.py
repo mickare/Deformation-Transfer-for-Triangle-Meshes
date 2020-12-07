@@ -75,19 +75,22 @@ def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarr
 
 
 def get_closest_points(kd_tree: cKDTree, verts: np.array, vert_normals: np.array, target_normals: np.array,
-                       max_angle: float = np.radians(90)) -> np.ndarray:
+                       max_angle: float = np.radians(90), ks=100) -> np.ndarray:
     assert len(verts) == len(vert_normals)
-    closest_points = []
-    dists, indicies = kd_tree.query(verts, min(len(target_normals), 200))
+    closest_points: List[Tuple[int, int]] = []
+    dists, indicies = kd_tree.query(verts, min(len(target_normals), ks))
     for v, (dist, ind) in enumerate(zip(dists, indicies)):
         angles = np.arccos(np.dot(target_normals[ind], vert_normals[v]))
         angles_cond = np.abs(angles) < max_angle
         if angles_cond.any():
             cind = ind[angles_cond][0]
+            closest_points.append((v, cind))
         else:
             # Fallback
-            cind = fallback_closest_points(kd_tree, verts[v], vert_normals[v], target_normals, max_angle)
-        closest_points.append(cind)
+            # cind = fallback_closest_points(kd_tree, verts[v], vert_normals[v], target_normals, max_angle)
+            # closest_points.append(cind)
+            pass
+
     return np.array(closest_points)
 
 
@@ -370,7 +373,8 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
             vertices_clipped = vertices[:len(source_org.vertices)]
             closest_points = get_closest_points(kd_tree_target, vertices_clipped,
                                                 get_vertex_normals(vertices_clipped, source_org.faces), target_normals)
-            Bc = get_bec(closest_points, target.vertices)
+            AEc = AEc[closest_points[:, 0]]
+            Bc = get_bec(closest_points[:, 1], target.vertices)
             assert AEc.shape[0] == Bc.shape[0]
 
             mAEc, mBc = enforce_markers(AEc, Bc, target, markers)
