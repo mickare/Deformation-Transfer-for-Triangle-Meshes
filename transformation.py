@@ -10,7 +10,10 @@ import scipy.sparse.linalg
 import tqdm
 
 cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+# cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
 corr_markers = cfg.markers  # List of vertex-tuples (source, target)
+
+# corr_markers = np.ascontiguousarray(np.array((corr_markers[:, 0], corr_markers[:, 0]), dtype=np.int).T)
 
 #########################################################
 # Load meshes
@@ -18,23 +21,24 @@ corr_markers = cfg.markers  # List of vertex-tuples (source, target)
 original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
 original_transformed_source = meshlib.Mesh.from_file_obj(cfg.source.poses[0])
 original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
+# original_target = meshlib.Mesh.from_file_obj(cfg.source.reference)
 
 source_mesh = original_source.to_fourth_dimension()
 target_mesh = original_target.to_fourth_dimension()
-source_pose_mesh = original_transformed_source.to_fourth_dimension()
+pose_mesh = original_transformed_source.to_fourth_dimension()
 
 #########################################################
 # Load correspondence from cache if possible
-mapping = get_correspondence(original_source, original_target, corr_markers)
+mapping = get_correspondence(original_source, original_target, corr_markers, plot=True)
 
 
 #########################################################
 # Prepare transformation matrices
 
 def compute_s():
-    v = source_pose_mesh.span
-    inv_v = np.linalg.inv(source_mesh.span)
-    vvinv = np.matmul(v, inv_v)
+    v = source_mesh.span
+    inv_v = np.linalg.inv(pose_mesh.span)
+    vvinv = v.transpose((0,2,1)) @ inv_v.transpose((0,2,1))
     return vvinv[mapping[:, 0]]
 
 
@@ -87,10 +91,11 @@ def build_missing():
     return As, Bs
 
 
-Wm, Ws = 1.0, 0.001
 Am, Bm = build_mapping()
 As, Bs = build_missing()
 
+Wm = 1.0
+Ws = 1.0
 Astack = [Am * Wm, As * Ws]
 Bstack = [Bm * Wm, Bs * Ws]
 
@@ -108,4 +113,4 @@ LU = sparse.linalg.splu((A.T @ A).tocsc())
 x = LU.solve(A.T @ b)
 
 result = meshlib.Mesh(vertices=x[:len(original_target.vertices)], faces=original_target.faces)
-plot_result(source_pose_mesh, result).show(renderer="browser")
+plot_result(pose_mesh, result).show(renderer="browser")
