@@ -21,7 +21,7 @@ class Mesh:
     faces: np.ndarray
 
     @classmethod
-    def from_pywavefront(cls, obj: pywavefront.Wavefront):
+    def from_pywavefront(cls, obj: pywavefront.Wavefront) -> "Mesh":
         """
         Load a mesh from a pywavefront object
         :param obj:
@@ -34,7 +34,7 @@ class Mesh:
         )
 
     @classmethod
-    def from_file_obj(cls, file: str, **kwargs):
+    def from_file_obj(cls, file: str, **kwargs) -> "Mesh":
         """
         Load a mesh from a .obj file
         :param file:
