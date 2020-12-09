@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict
-from typing import Tuple, Dict, Set, List
+from typing import Tuple, Dict, Set, List, Optional
 
 import numpy as np
 import scipy.sparse.linalg
@@ -61,17 +61,17 @@ def get_bec(closest_points: np.array, verts: np.array):
     return verts[closest_points]
 
 
-def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarray, target_normals: np.ndarray,
-                            max_angle: float = np.radians(90)) -> int:
-    for i in range(int(np.ceil(len(target_normals) / 1000))):
-        start = i * 1000 + 1
-        ks = np.arange(start, min(start + 1000, len(target_normals)))
-        dist, ind = kd_tree.query(vert, ks)
-        angles = np.arccos(np.dot(target_normals[ind], normal))
-        angles_cond = np.abs(angles) < max_angle
-        if angles_cond.any():
-            return ind[angles_cond][0]
-    raise RuntimeError("Could not find any point on the target mesh!")
+# def fallback_closest_points(kd_tree: cKDTree, vert: np.ndarray, normal: np.ndarray, target_normals: np.ndarray,
+#                             max_angle: float = np.radians(90)) -> int:
+#     for i in range(int(np.ceil(len(target_normals) / 1000))):
+#         start = i * 1000 + 1
+#         ks = np.arange(start, min(start + 1000, len(target_normals)))
+#         dist, ind = kd_tree.query(vert, ks)
+#         angles = np.arccos(np.dot(target_normals[ind], normal))
+#         angles_cond = np.abs(angles) < max_angle
+#         if angles_cond.any():
+#             return ind[angles_cond][0]
+#     raise RuntimeError("Could not find any point on the target mesh!")
 
 
 def get_closest_points(kd_tree: cKDTree, verts: np.array, vert_normals: np.array, target_normals: np.array,
@@ -166,36 +166,25 @@ def get_closest_triangles(
 #########################################################
 # Matrix builder for T Transformation entries
 
-class TransformEntry:
-    """
-    Class for creating the transformation matrix solution for T=xV^-1
-    """
+class TransformMatrix:
+    __row_partial_baked = np.array([0, 1, 2] * 4)
 
-    def __init__(self, face: np.ndarray, invV: np.ndarray):
-        assert face.shape == (4,)
-        assert invV.shape == (3, 3)
-        self.face = face
-        """
-        Solving
-        x = [v2-v1, v3-v1, v4-v1]^-1
-        w = xV^{-1}
-        w_ij = v1 x2 - v1 x1 + v2 x3 - v2 x1 + v3 x4 - v3 x1
-        w_ij = -(v1j+v2j+v3j) x1i + (v1j) x2i + (v2j) x3i + (v3j) x4i
-        """
-        self.invV = invV
+    @classmethod
+    def expand(cls, f: np.ndarray, inv: np.ndarray, size: int):
+        i0, i1, i2, i3 = f
+        col = np.array([i0, i0, i0, i1, i1, i1, i2, i2, i2, i3, i3, i3])
+        data = np.concatenate([-inv.sum(axis=0), *inv])
+        return sparse.coo_matrix((data, (cls.__row_partial_baked, col)), shape=(3, size), dtype=np.float)
 
-    def insert_to(self, target: sparse.spmatrix, row: int):
-        # Index
-        i0, i1, i2, i3 = self.face
-        # Insert by adding
-        tmp = self.invV.T
-        target[row:row + 3, i0] = -np.sum(tmp, axis=0).reshape((3, 1))
-        target[row:row + 3, i1] = tmp[0].reshape((3, 1))
-        target[row:row + 3, i2] = tmp[1].reshape((3, 1))
-        target[row:row + 3, i3] = tmp[2].reshape((3, 1))
+    @classmethod
+    def construct(cls, faces: np.ndarray, invVs: np.ndarray, size: int, desc="Building Transformation Matrix"):
+        assert len(faces) == len(invVs)
+        return sparse.vstack([
+            cls.expand(f, inv, size) for f, inv in tqdm.tqdm(zip(faces, invVs), total=len(faces), desc=desc)
+        ], dtype=np.float)
 
 
-def enforce_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, markers: np.ndarray) \
+def apply_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, markers: np.ndarray) \
         -> Tuple[sparse.spmatrix, np.ndarray]:
     """
     Solves the marker vertices of `target` in `A` and pushes it to the right side of the equation `Ax=b` into `b`.
@@ -206,16 +195,29 @@ def enforce_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, mar
     :param markers: Marker (Qx2) with first column the source indices and the second the target indices.
     :return: Matrix (Nx(M-Q)), result vector (Nx3)
     """
+    assert markers.ndim == 2 and markers.shape[1] == 2
     invmarker = np.setdiff1d(np.arange(A.shape[1]), markers[:, 0])
     zb = b - A[:, markers.T[0]] * target.vertices[markers.T[1]]
     return A[:, invmarker].tocsc(), zb
+
+
+def revert_markers(A: sparse.spmatrix, x: np.ndarray, target: meshlib.Mesh, markers: np.ndarray,
+                   *, out: Optional[np.ndarray] = None):
+    if out is None:
+        out = np.zeros((A.shape[1] + len(markers), 3))
+    else:
+        assert out.shape == (A.shape[1] + len(markers), 3)
+    invmarker = np.setdiff1d(np.arange(len(out)), markers[:, 0])
+    out[invmarker] = x
+    out[markers[:, 0]] = target.vertices[markers[:, 1]]
+    return out
 
 
 #########################################################
 # Identity Cost - of transformations
 
 
-def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.ndarray]:
+def construct_identity_cost(subject, invVs) -> Tuple[sparse.spmatrix, np.ndarray]:
     """ Construct the terms for the identity cost """
     shape = (
         # Count of all minimization terms
@@ -234,10 +236,10 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
     AEi = cache.get()
 
     if AEi is None:
-        AEi = sparse.dok_matrix(shape, dtype=np.float)
-        for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Identity Cost")):  # type: int, TransformEntry
-            Ti.insert_to(AEi, row=index * 3)
-        AEi = AEi.tocsr()
+        AEi = TransformMatrix.construct(
+            subject.faces, invVs, len(subject.vertices),
+            desc="Building Identity Cost"
+        ).tocsr()
         AEi.eliminate_zeros()
         cache.store(AEi)
     else:
@@ -252,7 +254,7 @@ def construct_identity_cost(subject, transforms) -> Tuple[sparse.spmatrix, np.nd
 # Smoothness Cost - of differences to adjacent transformations
 
 
-def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spmatrix, np.ndarray]:
+def construct_smoothness_cost(subject, invVs, adjacent) -> Tuple[sparse.spmatrix, np.ndarray]:
     """ Construct the terms for the Smoothness cost"""
     count_adjacent = sum(len(a) for a in adjacent)
     shape = (
@@ -272,17 +274,24 @@ def construct_smoothness_cost(subject, transforms, adjacent) -> Tuple[sparse.spm
     AEs = cache.get()
 
     if AEs is None:
-        lhs = sparse.dok_matrix(shape, dtype=np.float)
-        rhs = sparse.dok_matrix(shape, dtype=np.float)
-        row = 0
-        for index, Ti in enumerate(tqdm.tqdm(transforms, desc="Building Smoothness Cost")):
+        size = len(subject.vertices)
+
+        def construct(f, inv, index):
+            a = TransformMatrix.expand(f, inv, size).tocsc()
             for adj in adjacent[index]:
-                Ti.insert_to(lhs, row)
-                transforms[adj].insert_to(rhs, row)
-                row += 3
-        AEs = (lhs - rhs)
-        assert row == AEs.shape[0]
-        AEs = AEs.tocsr()
+                yield a, TransformMatrix.expand(subject.faces[adj], invVs[adj], size).tocsc()
+
+        lhs, rhs = zip(*(adjacents for index, (f, inv) in
+                         enumerate(tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces),
+                                             desc="Building Smoothness Cost"))
+                         for adjacents in construct(f, inv, index)))
+        AEs = sparse.vstack(lhs) - sparse.vstack(rhs)
+
+        # AEs = sparse.vstack([
+        #     adjacents for index, (f, inv) in
+        #     enumerate(tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces), desc="Building Smoothness Cost"))
+        #     for adjacents in construct(f, inv, index)
+        # ], dtype=np.float).tocsr()
         AEs.eliminate_zeros()
         cache.store(AEs)
     else:
@@ -329,11 +338,11 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
     #########################################################
     # Preparing the transformation matrices
     print("Preparing Transforms")
-    transforms = [TransformEntry(f, invV) for f, invV in zip(source.faces, invVs)]
+    # transforms = [TransformEntry(f, invV) for f, invV in zip(source.faces, invVs)]
 
-    AEi, Bi = enforce_markers(*construct_identity_cost(source, transforms), target, markers)
+    AEi, Bi = apply_markers(*construct_identity_cost(source, invVs), target, markers)
 
-    AEs, Bs = enforce_markers(*construct_smoothness_cost(source, transforms, adjacent), target, markers)
+    AEs, Bs = apply_markers(*construct_smoothness_cost(source, invVs, adjacent), target, markers)
 
     #########################################################
     print("Building KDTree for closest points")
@@ -362,9 +371,6 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
         Astack = [AEi * Wi, AEs * Ws]
         Bstack = [Bi * Wi, Bs * Ws]
 
-        # Astack = [AEs * Ws]
-        # Bstack = [Bs * Ws]
-
         #########################################################
         pbar_next("Closest Point Costs")
 
@@ -377,7 +383,7 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
             Bc = get_bec(closest_points[:, 1], target.vertices)
             assert AEc.shape[0] == Bc.shape[0]
 
-            mAEc, mBc = enforce_markers(AEc, Bc, target, markers)
+            mAEc, mBc = apply_markers(AEc, Bc, target, markers)
             Astack.append(mAEc * Wc[iteration])
             Bstack.append(mBc * Wc[iteration])
 
@@ -393,17 +399,14 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
         A = A.tocsc()
 
         # Calculate inverse markers for source
-        invmarker = np.setdiff1d(np.arange(len(vertices)), markers[:, 0])
-        assert len(vertices) - len(markers) == len(invmarker)
-        assert A.shape[1] == len(invmarker)
+        assert A.shape[1] == len(vertices) - len(markers)
         assert A.shape[0] == b.shape[0]
 
         LU = sparse.linalg.splu((A.T @ A).tocsc())
         x = LU.solve(A.T @ b)
 
         # Reconstruct vertices x
-        vertices[invmarker] = x
-        vertices[markers[:, 0]] = target.vertices[markers[:, 1]]
+        revert_markers(A, x, target, markers, out=vertices)
 
         result = meshlib.Mesh(vertices=vertices[:len(source_org.vertices)],
                               faces=source_org.faces)
