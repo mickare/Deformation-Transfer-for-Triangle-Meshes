@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import scipy.sparse.linalg
 import tqdm
@@ -5,16 +7,22 @@ from scipy import sparse
 
 import meshlib
 from config import ConfigFile
-from correspondence import get_correspondence, TransformEntry, compute_adjacent_by_edges
+from correspondence import get_correspondence, compute_adjacent_by_edges, apply_markers, revert_markers, TransformMatrix
 
 
 class Transformation:
-    def __init__(self, source: meshlib.Mesh, target: meshlib.Mesh, mapping: np.ndarray, smoothness=0.00001):
+    def __init__(
+            self,
+            source: meshlib.Mesh,
+            target: meshlib.Mesh,
+            mapping: np.ndarray,
+            smoothness=1.0
+    ):
         self.source = source.to_third_dimension(copy=False)
         self.target = target.to_third_dimension(copy=False)
         self.mapping = mapping
         self.Wm = 1.0
-        self.Ws = smoothness
+        self.Ws = max(0.00000001, smoothness)
 
         self._Am = self._compute_mapping_matrix(self.target, mapping)
         self._As, self._Bs = self._compute_missing_smoothness(self.target, mapping)
@@ -25,17 +33,8 @@ class Transformation:
         inv_target_span = np.linalg.inv(target.span)
 
         # Matrix
-        Am = sparse.dok_matrix((
-            len(mapping) * 3,
-            len(target.vertices)
-        ), dtype=np.float)
-
-        transforms = [TransformEntry(f, invV) for f, invV in
-                      zip(target.faces[mapping[:, 1]], inv_target_span[mapping[:, 1]])]
-        for index, Ti in enumerate(
-                tqdm.tqdm(transforms, desc="Building Mapping")):  # type: int, TransformEntry
-            Ti.insert_to(Am, row=index * 3)
-
+        Am = TransformMatrix.construct(target.faces[mapping[:, 1]], inv_target_span[mapping[:, 1]],
+                                       len(target.vertices), desc="Building Mapping")
         return Am.tocsc()
 
     @classmethod
@@ -45,31 +44,34 @@ class Transformation:
         inv_target_span = np.linalg.inv(target.span)
         missing = np.setdiff1d(np.arange(len(target.faces)), np.unique(mapping[:, 1]))
         count_adjacent = sum(len(adjacent[m]) for m in missing)
-        shape = (
-            count_adjacent * 3,
-            len(target.vertices)
-        )
-        transforms_all = [(n, TransformEntry(f, invV)) for n, (f, invV) in
-                          enumerate(zip(target.faces, inv_target_span))]
-        transforms_mis = [transforms_all[m] for m in missing]
+        # shape = (
+        #     count_adjacent * 3,
+        #     len(target.vertices)
+        # )
 
-        lhs = sparse.dok_matrix(shape, dtype=np.float)
-        rhs = sparse.dok_matrix(shape, dtype=np.float)
-        row = 0
-        for index, Ti in tqdm.tqdm(transforms_mis, desc="Building Smoothness"):
+        if count_adjacent == 0:
+            return sparse.csc_matrix((0, len(target.vertices)), dtype=np.float), np.zeros((0, 3))
+
+        size = len(target.vertices)
+
+        def construct(f, inv, index):
+            a = TransformMatrix.expand(f, inv, size).tocsc()
             for adj in adjacent[index]:
-                Ti.insert_to(lhs, row)
-                transforms_all[adj][1].insert_to(rhs, row)
-                row += 3
-        As = (lhs - rhs)
+                yield a, TransformMatrix.expand(target.faces[adj], inv_target_span[adj], size).tocsc()
+
+        lhs, rhs = zip(*(adjacents for index, m in
+                         enumerate(tqdm.tqdm(missing, total=len(missing),
+                                             desc="Fixing Missing Mapping with Smoothness"))
+                         for adjacents in construct(target.faces[m], inv_target_span[m], index)))
+
+        As = (sparse.vstack(lhs) - sparse.vstack(rhs)).tocsc()
         Bs = np.zeros((As.shape[0], 3))
         return As, Bs
 
-    def __call__(self, pose: meshlib.Mesh, smoothness=0.00001) -> meshlib.Mesh:
-        assert smoothness > 0
+    def __call__(self, pose: meshlib.Mesh) -> meshlib.Mesh:
         # Transformation of source
         ## Si * V = V~  ==>>  Si = V~ * V^-1
-        s = np.linalg.inv(self.source.span) @ pose.span
+        s = (pose.span @ np.linalg.inv(self.source.span)).transpose(0,2,1)
         ## Stack Si
         Bm = np.concatenate(s[self.mapping[:, 0]])
 
@@ -82,24 +84,20 @@ class Transformation:
 
         assert A.shape[0] == b.shape[0]
         assert b.shape[1] == 3
-        # assert A.shape[1] == len(target_mesh.vertices)
-        A = A.tocsc()
-        A.eliminate_zeros()
-
         LU = sparse.linalg.splu((A.T @ A).tocsc())
         x = LU.solve(A.T @ b)
 
-        result = meshlib.Mesh(vertices=x[:len(self.target.vertices)], faces=self.target.faces)
+        vertices = x
+        result = meshlib.Mesh(vertices=vertices[:len(self.target.vertices)], faces=self.target.faces)
         return result
-
 
 
 if __name__ == "__main__":
     import plot_result
     import render
 
-    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
     corr_markers = cfg.markers  # List of vertex-tuples (source, target)
 
@@ -118,7 +116,7 @@ if __name__ == "__main__":
 
     #########################################################
     # Load correspondence from cache if possible
-    mapping = get_correspondence(original_source, original_target, corr_markers, plot=True)
+    mapping = get_correspondence(original_source, original_target, corr_markers, plot=False)
 
     transf = Transformation(original_source, original_target, mapping)
     result = transf(original_pose)

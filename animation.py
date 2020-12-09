@@ -21,8 +21,8 @@ def animate_cfg(cfg: ConfigFile, identity=False):
     if identity:
         original_target = meshlib.Mesh.from_file_obj(cfg.source.reference)
 
-    mapping = get_correspondence(original_source, original_target, corr_markers, plot=True)
-    transf = Transformation(original_source, original_target, mapping)
+    mapping = get_correspondence(original_source, original_target, corr_markers)
+    transf = Transformation(original_source, original_target, mapping, smoothness=1)
     animate(transf, list(cfg.source.load_poses()))
 
 
