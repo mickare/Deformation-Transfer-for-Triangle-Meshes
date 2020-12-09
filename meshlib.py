@@ -96,12 +96,13 @@ class Mesh:
     @property
     def span(self) -> np.ndarray:
         """
-        Calculates the triangle spans of each surface with the offset v1
+        Calculates the triangle spans of each surface with the offset v1.
+        The span components are ordered in columns.
         :return:
             triangles Nx3x3
         """
         a, b, c = self.span_components()
-        return np.transpose((a, b, c), (1, 0, 2))
+        return np.transpose((a, b, c), (1, 2, 0))
 
     @property
     def v1(self):
@@ -195,3 +196,18 @@ class MeshAdaption:
 
             # A dst ~= src
             # A dst - src ~= 0
+
+
+class MeshRepair:
+    @classmethod
+    def close(cls, mesh: Mesh) -> Tuple[Mesh, np.ndarray]:
+        """
+        Closes a mesh where vertices are on the same position and returns the new mesh and a mapping
+        from old vertice indices to new.
+        """
+
+        unique, ind, inv = np.unique(mesh.vertices, return_index=True, return_inverse=True, axis=0)
+        indsort = np.argsort(ind)
+        vertices = unique[indsort]
+
+        return inv[ind]
