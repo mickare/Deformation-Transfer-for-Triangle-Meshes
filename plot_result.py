@@ -164,8 +164,8 @@ def plot(source: Mesh, target: Mesh, vertices:bool =False, markers: Optional[np.
 
 if __name__ == "__main__":
     cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    source = Mesh.from_file_obj(cfg.source.reference)
-    target = Mesh.from_file_obj(cfg.target.reference)
+    source = Mesh.load(cfg.source.reference)
+    target = Mesh.load(cfg.target.reference)
     markers = cfg.markers
 
     plot(source, target).show(renderer="browser")

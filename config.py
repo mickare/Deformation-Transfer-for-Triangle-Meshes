@@ -31,11 +31,11 @@ class ModelConfig:
             self.poses = [os.path.join(basepath, p) for p in self.poses]
 
     def load_reference(self) -> meshlib.Mesh:
-        return meshlib.Mesh.from_file_obj(self.reference)
+        return meshlib.Mesh.load(self.reference)
 
     def load_poses(self) -> Iterator[meshlib.Mesh]:
         for p in self.poses:
-            yield meshlib.Mesh.from_file_obj(p)
+            yield meshlib.Mesh.load(p)
 
 
 class ConfigFile:

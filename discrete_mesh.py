@@ -28,7 +28,7 @@ class TriangleSpanMesh:
 
 
 def example_discrete_mesh_rotation(file="models/lowpoly_cat/cat_reference.obj"):
-    cat = meshlib.Mesh.from_file_obj(file)
+    cat = meshlib.Mesh.load(file)
     dmesh = TriangleSpanMesh.from_mesh(cat)
 
     rot = Vector3D.new_rotation((1, 0, 0), np.pi * 0.2)

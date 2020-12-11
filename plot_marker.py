@@ -158,9 +158,10 @@ def plot_marker(source: Mesh, target: Mesh, markers: np.ndarray) -> Figure:
 
 
 if __name__ == "__main__":
-    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    source = Mesh.from_file_obj(cfg.source.reference)
-    target = Mesh.from_file_obj(cfg.target.reference)
+    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    source = Mesh.load(cfg.source.reference)
+    target = Mesh.load(cfg.target.reference)
     markers = cfg.markers
 
     plot_marker(source, target, markers).show(renderer="browser")

@@ -34,7 +34,7 @@ class Mesh:
         )
 
     @classmethod
-    def from_file_obj(cls, file: str, **kwargs) -> "Mesh":
+    def load_obj(cls, file: str, **kwargs) -> "Mesh":
         """
         Load a mesh from a .obj file
         :param file:
@@ -44,6 +44,25 @@ class Mesh:
         assert os.path.isfile(file), f"Mesh file is missing: {file}"
         kwargs.setdefault("encoding", "UTF-8")
         return cls.from_pywavefront(pywavefront.Wavefront(file, collect_faces=True, **kwargs))
+
+    @classmethod
+    def load_npz(cls, file: str, **kwargs) -> "Mesh":
+        """
+        Load a mesh from a numpy file .npz
+        :param file:
+        :param kwargs:
+        :return:
+        """
+        assert os.path.isfile(file), f"Mesh file is missing: {file}"
+        data = np.load(file)
+        return cls(data["vertices"], data["faces"])
+
+    @classmethod
+    def load(cls, file: str, **kwargs) -> "Mesh":
+        if file.endswith(".obj"):
+            return cls.load_obj(file, **kwargs)
+        elif file.endswith(".npz"):
+            return cls.load_npz(file, **kwargs)
 
     def get_centroids(self) -> np.ndarray:
         return self.vertices[self.faces[:, :3]].mean(axis=1)

@@ -15,8 +15,8 @@ import meshlib
 from render import BrowserVisualizer
 from utils import SparseMatrixCache
 
-original_source = meshlib.Mesh.from_file_obj(config.source_reference)
-original_target = meshlib.Mesh.from_file_obj(config.target_reference)
+original_source = meshlib.Mesh.load(config.source_reference)
+original_target = meshlib.Mesh.load(config.target_reference)
 markers = config.markers  # cat, dog
 # markers = np.transpose((markers[:, 0], markers[:, 0]))
 

@@ -21,11 +21,11 @@ if identity:
 #########################################################
 # Load meshes
 
-original_source = meshlib.Mesh.from_file_obj(cfg.source.reference)
-original_transformed_source = meshlib.Mesh.from_file_obj(cfg.source.poses[0])
-original_target = meshlib.Mesh.from_file_obj(cfg.target.reference)
+original_source = meshlib.Mesh.load(cfg.source.reference)
+original_transformed_source = meshlib.Mesh.load(cfg.source.poses[0])
+original_target = meshlib.Mesh.load(cfg.target.reference)
 if identity:
-    original_target = meshlib.Mesh.from_file_obj(cfg.source.reference)
+    original_target = meshlib.Mesh.load(cfg.source.reference)
 
 source_mesh = original_source.to_fourth_dimension()
 target_mesh = original_target.to_fourth_dimension()

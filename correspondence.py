@@ -441,8 +441,8 @@ def get_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, marke
 if __name__ == "__main__":
     cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
     # Load meshes
-    source_org = meshlib.Mesh.from_file_obj(cfg.source.reference)
-    target_org = meshlib.Mesh.from_file_obj(cfg.target.reference)
+    source_org = meshlib.Mesh.load(cfg.source.reference)
+    target_org = meshlib.Mesh.load(cfg.target.reference)
     markers = cfg.markers  # List of vertex-tuples (source, target)
 
     corres = compute_correspondence(source_org, target_org, markers, plot=True)

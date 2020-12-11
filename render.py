@@ -222,8 +222,8 @@ def plot_example2():
     cat_path = "models/lowpoly/cat/cat_reference.obj"
     dog_path = "models/lowpoly/dog/dog_reference.obj"
 
-    cat = Mesh.from_file_obj(cat_path)
-    dog = Mesh.from_file_obj(dog_path)
+    cat = Mesh.load(cat_path)
+    dog = Mesh.load(dog_path)
 
     cat_index_label = [f"index: {i}" for i, v in enumerate(cat.vertices)]
     vis = BrowserVisualizer()
@@ -255,8 +255,8 @@ def plot_example2():
 def plot_example_markers():
     """Check if markers are correct"""
 
-    cat = Mesh.from_file_obj(config.source_reference)
-    dog = Mesh.from_file_obj(config.target_reference)
+    cat = Mesh.load(config.source_reference)
+    dog = Mesh.load(config.target_reference)
 
     for m in config.markers:
         cat.vertices[m[0]][0] = dog.vertices[m[1]][0]
@@ -281,8 +281,8 @@ def plot_example1():
     cat_path = "models/lowpoly/cat/cat_reference.obj"
     dog_path = "models/lowpoly/dog/dog_reference.obj"
 
-    cat = Mesh.from_file_obj(cat_path)
-    dog = Mesh.from_file_obj(dog_path)
+    cat = Mesh.load(cat_path)
+    dog = Mesh.load(dog_path)
 
     vis = BrowserVisualizer()
     vis.add_mesh(cat, offset=(0, 0, cat.size()[2] + dog.size()[2]))
