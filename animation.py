@@ -61,7 +61,7 @@ def animate(transf: Transformation, poses: Sequence[meshlib.Mesh]):
                                  "mode": "afterall",
                                  "frame": {"duration": 40, "redraw": True},
                                  "fromcurrent": False,
-                                 "transition": {"duration": 40, "easing": "elastic", "ordering": "traces first"}
+                                 "transition": {"duration": 40, "easing": "linear", "ordering": "traces first"}
                              }]
                          )
                      ])
