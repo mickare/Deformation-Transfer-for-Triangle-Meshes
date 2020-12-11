@@ -1,0 +1,87 @@
+source:
+  reference: cat/cat_reference.obj
+  poses:
+    - cat/animation/cat_000001.obj
+    - cat/animation/cat_000002.obj
+    - cat/animation/cat_000003.obj
+    - cat/animation/cat_000004.obj
+    - cat/animation/cat_000005.obj
+    - cat/animation/cat_000006.obj
+    - cat/animation/cat_000007.obj
+    - cat/animation/cat_000008.obj
+    - cat/animation/cat_000009.obj
+    - cat/animation/cat_000010.obj
+    - cat/animation/cat_000011.obj
+    - cat/animation/cat_000012.obj
+    - cat/animation/cat_000013.obj
+    - cat/animation/cat_000014.obj
+    - cat/animation/cat_000015.obj
+    - cat/animation/cat_000016.obj
+    - cat/animation/cat_000017.obj
+    - cat/animation/cat_000018.obj
+    - cat/animation/cat_000019.obj
+    - cat/animation/cat_000020.obj
+    - cat/animation/cat_000021.obj
+    - cat/animation/cat_000022.obj
+    - cat/animation/cat_000023.obj
+    - cat/animation/cat_000024.obj
+    - cat/animation/cat_000025.obj
+    - cat/animation/cat_000026.obj
+    - cat/animation/cat_000027.obj
+    - cat/animation/cat_000028.obj
+    - cat/animation/cat_000029.obj
+    - cat/animation/cat_000030.obj
+    - cat/animation/cat_000031.obj
+    - cat/animation/cat_000032.obj
+    - cat/animation/cat_000033.obj
+    - cat/animation/cat_000034.obj
+    - cat/animation/cat_000035.obj
+    - cat/animation/cat_000036.obj
+
+target:
+  reference: cat_voxel/cat_voxel_mesh.npz
+  # Target poses just for reference
+  poses:
+
+markers:
+  - "80:4270"
+  - "78:4268"
+  - "284:4263"
+  - "282:4265"
+  - "59:1749"
+  - "60:1747"
+  - "263:1742"
+  - "264:1745"
+  - "160:602"
+  - "383:599"
+  - "183:2918"
+  - "6:2123"
+  - "209:2114"
+  - "14:3696"
+  - "217:3692"
+  - "180:825"
+  - "285:575"
+  - "371:5"
+  - "353:387"
+  - "354:371"
+  - "201:2487"
+  - "185:3385"
+  - "192:5304"
+  - "133:5483"
+  - "341:5477"
+  - "23:5448"
+  - "226:5444"
+  - "25:5641"
+  - "228:5638"
+  - "330:5811"
+  - "123:5588"
+  - "331:5586"
+  - "236:4873"
+  - "95:1698"
+  - "301:1696"
+  - "15:3770"
+  - "218:3758"
+  - "149:1460"
+  - "372:1455"
+  - "37:719"
+  - "241:885"
