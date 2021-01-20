@@ -17,7 +17,8 @@ def plot(source: Mesh, target: Mesh, vertices:bool =False, markers: Optional[np.
     )
 
     camera = dict(
-        up=dict(x=0, y=1, z=0)
+        up=dict(x=0, y=1, z=0),
+        eye=dict(x=1.7, y=2.0, z=1.8)
     )
     scene = dict(
         aspectmode='data',
