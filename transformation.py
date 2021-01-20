@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 import numpy as np
@@ -71,7 +72,7 @@ class Transformation:
     def __call__(self, pose: meshlib.Mesh) -> meshlib.Mesh:
         # Transformation of source
         ## Si * V = V~  ==>>  Si = V~ * V^-1
-        s = (pose.span @ np.linalg.inv(self.source.span)).transpose(0,2,1)
+        s = (pose.span @ np.linalg.inv(self.source.span)).transpose(0, 2, 1)
         ## Stack Si
         Bm = np.concatenate(s[self.mapping[:, 0]])
 
@@ -96,8 +97,8 @@ if __name__ == "__main__":
     import plot_result
     import render
 
-    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
     corr_markers = cfg.markers  # List of vertex-tuples (source, target)
 
@@ -121,5 +122,5 @@ if __name__ == "__main__":
     transf = Transformation(original_source, original_target, mapping)
     result = transf(original_pose)
 
-    render.MeshPlots.plot_correspondence(original_source, original_target, mapping)
+    render.MeshPlots.plot_correspondence(original_source, original_target, mapping).show(renderer="browser")
     plot_result.plot(original_pose, result).show(renderer="browser")

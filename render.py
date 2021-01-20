@@ -78,7 +78,7 @@ class BrowserVisualizer:
         self._data.append(self.make_scatter(points, offset, **kwargs))
         return self
 
-    def show(self, camera: ODict = None, **kwargs) -> None:
+    def finalize(self, camera: ODict = None) -> go.Figure:
         camera = camera or {}
         camera.setdefault("up", dict(x=0, y=1, z=0))
 
@@ -98,6 +98,10 @@ class BrowserVisualizer:
             ),
             scene_camera=camera
         )
+        return fig
+
+    def show(self, camera: ODict = None, **kwargs) -> None:
+        fig = self.finalize(camera)
         fig.show(**kwargs)
 
 
@@ -214,7 +218,7 @@ class MeshPlots:
             mode="lines",
             name="Correspondence"
         )
-        vis.show(renderer="browser")
+        return vis
 
 
 def plot_example2():

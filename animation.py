@@ -26,7 +26,7 @@ def animate_cfg(cfg: ConfigFile, identity=False):
     animate(transf, list(cfg.source.load_poses()))
 
 
-def animate(transf: Transformation, poses: Sequence[meshlib.Mesh]):
+def make_animation(transf: Transformation, poses: Sequence[meshlib.Mesh]):
     assert poses
     results = [transf(pose) for pose in poses]
 
@@ -88,11 +88,16 @@ def animate(transf: Transformation, poses: Sequence[meshlib.Mesh]):
         margin=dict(l=0, r=0),
         # scene_camera=camera
     )
+    return fig
+
+
+def animate(transf: Transformation, poses: Sequence[meshlib.Mesh]):
+    fig = make_animation(transf, poses)
     fig.show(renderer="browser")
 
 
 if __name__ == "__main__":
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
-    cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    cfg = ConfigFile.load("models/lowpoly/markers-cat-voxel.yml")
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
     animate_cfg(cfg)

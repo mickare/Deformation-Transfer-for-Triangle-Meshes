@@ -446,4 +446,4 @@ if __name__ == "__main__":
     markers = cfg.markers  # List of vertex-tuples (source, target)
 
     corres = compute_correspondence(source_org, target_org, markers, plot=True)
-    MeshPlots.plot_correspondence(source_org, target_org, corres)
+    MeshPlots.plot_correspondence(source_org, target_org, corres).show(renderer="browser")
