@@ -59,10 +59,11 @@ class Mesh:
 
     @classmethod
     def load(cls, file: str, **kwargs) -> "Mesh":
-        if file.endswith(".obj"):
+        if file.endswith(".obj") or file.endswith(".pose"):
             return cls.load_obj(file, **kwargs)
         elif file.endswith(".npz"):
             return cls.load_npz(file, **kwargs)
+        raise ValueError("Invalid file format")
 
     def get_centroids(self) -> np.ndarray:
         return self.vertices[self.faces[:, :3]].mean(axis=1)
