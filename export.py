@@ -12,11 +12,11 @@ if __name__ == "__main__":
     import plot_result
     import render
 
-    # name = "horsecamel"
-    # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
+    name = "horsecamel"
+    cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
 
-    name = "catdog"
-    cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
+    # name = "catdog"
+    # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
 
     # name = "catlion"
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
