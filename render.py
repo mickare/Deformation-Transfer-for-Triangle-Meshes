@@ -303,6 +303,17 @@ def plot_example1():
     )
     vis.show()
 
+def plot_voxel_cat():
+    """Simple example plot showing both a cat and a dog"""
+    cat_path = "models/lowpoly/cat_voxel/cat_voxel_mesh.npz"
+
+    cat = Mesh.load(cat_path)
+
+    vis = BrowserVisualizer()
+    vis.add_mesh(cat)
+    vis.show()
 
 if __name__ == "__main__":
     plot_example1()
+    # plot_voxel_cat()
+    
