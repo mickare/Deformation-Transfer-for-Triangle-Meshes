@@ -4,6 +4,7 @@ Python implementation of the paper ["Deformation Transfer for Triangle Meshes" b
 
  ![alt text](img/example.png "Example")
 
+
 ## TL; DR
 
 The goal is to transfer animations (deformations) from one model (source) to any other model (target) which does not share the same vertices count.
@@ -20,8 +21,8 @@ The **deformation transfer** is the **minimum solution** of the **Frobenius dist
 > "Frobenius norm": Very useful matrix norm that is invariant to matrix equation rearrangements.
 
 
-## How it works
 
+## How it works
 
 1. Build correspondence mapping
     1. Iterate n number of times:
@@ -37,12 +38,6 @@ The **deformation transfer** is the **minimum solution** of the **Frobenius dist
     ![alt text](img/eq_cost_transfer.png "Cost in Transfer")
       - *M*: mappings, *S<sub>S<sub>j</sub></sub>*: j'th triangle transformation of source, *T<sub>t<sub>j</sub></sub>*: j'th triangle transformation of target, *&tilde;v*: vertices of the deformed target 
     - The deformed target is the objective of the minimization.
-
-
-
-
-
-
 
 
 ## Requirements
@@ -67,6 +62,7 @@ File | Description | Main
 `animation.py` | | Plots an animation for all deformations for a model.
 `export.py` | | Exports each step of correspondence, transformation and the animation to a html page.
 `config.py` | Default configuration and file paths to markers and models. |
+
 
 ### Helper
 
