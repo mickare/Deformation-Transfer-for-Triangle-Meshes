@@ -1,12 +1,15 @@
+"""
+Classes to load and handle mesh data.
+"""
+
 import os
 from dataclasses import dataclass
 from typing import Tuple, List
 
 import numpy as np
 import pywavefront
-from scipy.cluster import vq
 
-from mathlib.vector import Vec3f, Vector3D
+from .vector import Vec3f, Vector3D
 
 
 @dataclass

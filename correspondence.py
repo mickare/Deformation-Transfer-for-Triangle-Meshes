@@ -1,18 +1,27 @@
+"""
+Computes the correspondence between vertices of two models.
+It "inflates" the source mesh until it fits the target mesh (by minimizing a cost function).
+
+This implementation is an approximation of the paper solution, since it simplifies the problem
+by matching the source vertices to the target vertices.
+But a better solution would be to match the source vertice to the target surfaces.
+"""
+
+
 import hashlib
 from collections import defaultdict
 from typing import Tuple, Dict, Set, List, Optional
 
 import numpy as np
-import scipy.sparse.linalg
 import tqdm
-from scipy import sparse
+import scipy.sparse as sparse
+import scipy.sparse.linalg as sparse_linalg
 from scipy.spatial import cKDTree
 
 import meshlib
 from config import ConfigFile
-from render import MeshPlots
-from utils import SparseMatrixCache
-from utils import CorrespondenceCache
+from render.plot import MeshPlots
+from meshlib.cache import SparseMatrixCache, CorrespondenceCache
 
 
 def compute_adjacent_by_edges(mesh: meshlib.Mesh):
@@ -54,7 +63,7 @@ def compute_adjacent_by_vertices(mesh: meshlib.Mesh):
 # Closest point search
 
 def get_aec(columns, rows):
-    return sparse.identity(columns, dtype=np.float, format="csc")[:rows]
+    return sparse.identity(columns, dtype=float, format="csc")[:rows]
 
 
 def get_bec(closest_points: np.array, verts: np.array):
@@ -174,14 +183,14 @@ class TransformMatrix:
         i0, i1, i2, i3 = f
         col = np.array([i0, i0, i0, i1, i1, i1, i2, i2, i2, i3, i3, i3])
         data = np.concatenate([-inv.sum(axis=0), *inv])
-        return sparse.coo_matrix((data, (cls.__row_partial_baked, col)), shape=(3, size), dtype=np.float)
+        return sparse.coo_matrix((data, (cls.__row_partial_baked, col)), shape=(3, size), dtype=float)
 
     @classmethod
     def construct(cls, faces: np.ndarray, invVs: np.ndarray, size: int, desc="Building Transformation Matrix"):
         assert len(faces) == len(invVs)
         return sparse.vstack([
             cls.expand(f, inv, size) for f, inv in tqdm.tqdm(zip(faces, invVs), total=len(faces), desc=desc)
-        ], dtype=np.float)
+        ], dtype=float)
 
 
 def apply_markers(A: sparse.spmatrix, b: np.ndarray, target: meshlib.Mesh, markers: np.ndarray) \
@@ -245,7 +254,7 @@ def construct_identity_cost(subject, invVs) -> Tuple[sparse.spmatrix, np.ndarray
     else:
         print("Reusing Identity Cost")
 
-    Bi = np.tile(np.identity(3, dtype=np.float), (len(subject.faces), 1))
+    Bi = np.tile(np.identity(3, dtype=float), (len(subject.faces), 1))
     assert AEi.shape[0] == Bi.shape[0]
     return AEi.tocsr(), Bi
 
@@ -291,7 +300,7 @@ def construct_smoothness_cost(subject, invVs, adjacent) -> Tuple[sparse.spmatrix
         #     adjacents for index, (f, inv) in
         #     enumerate(tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces), desc="Building Smoothness Cost"))
         #     for adjacents in construct(f, inv, index)
-        # ], dtype=np.float).tocsr()
+        # ], dtype=float).tocsr()
         AEs.eliminate_zeros()
         cache.store(AEs)
     else:
@@ -402,7 +411,7 @@ def compute_correspondence(source_org: meshlib.Mesh, target_org: meshlib.Mesh, m
         assert A.shape[1] == len(vertices) - len(markers)
         assert A.shape[0] == b.shape[0]
 
-        LU = sparse.linalg.splu((A.T @ A).tocsc())
+        LU = sparse_linalg.splu((A.T @ A).tocsc())
         x = LU.solve(A.T @ b)
 
         # Reconstruct vertices x

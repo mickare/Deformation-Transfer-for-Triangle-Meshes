@@ -1,3 +1,6 @@
+"""
+Wrapper and static configuration helper.
+"""
 import os
 from typing import Dict, Any, List, Tuple, Optional, Iterator
 

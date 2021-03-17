@@ -1,19 +1,17 @@
+"""
+Caches intermediate results on disk.
+
+It improves repeated execution significantly, especially when debugging things.
+"""
 import hashlib
 import os
-from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from functools import reduce
-from typing import Tuple, Callable, Optional, Any, Union, Sequence, Set
+from typing import Tuple, Callable, Optional, Union, Sequence
 
 import numpy as np
 from scipy import sparse
 
-from meshlib import Mesh
-
-
-def tween(seq, sep):
-    """From: https://stackoverflow.com/questions/5920643/add-an-item-between-each-item-already-in-the-list"""
-    return reduce(lambda r, v: r + [sep, v], seq[1:], seq[:1])
+from .mesh import Mesh
 
 
 class SparseMatrixCache:

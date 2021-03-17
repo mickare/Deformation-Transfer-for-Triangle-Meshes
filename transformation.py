@@ -1,14 +1,10 @@
-import os
-from typing import Optional
-
 import numpy as np
-import scipy.sparse.linalg
 import tqdm
 from scipy import sparse
 
 import meshlib
 from config import ConfigFile
-from correspondence import get_correspondence, compute_adjacent_by_edges, apply_markers, revert_markers, TransformMatrix
+from correspondence import get_correspondence, compute_adjacent_by_edges, TransformMatrix
 
 
 class Transformation:
@@ -51,7 +47,7 @@ class Transformation:
         # )
 
         if count_adjacent == 0:
-            return sparse.csc_matrix((0, len(target.vertices)), dtype=np.float), np.zeros((0, 3))
+            return sparse.csc_matrix((0, len(target.vertices)), dtype=float), np.zeros((0, 3))
 
         size = len(target.vertices)
 
@@ -94,8 +90,8 @@ class Transformation:
 
 
 if __name__ == "__main__":
-    import plot_result
-    import render
+    import render.plot_result as plt_res
+    import render.plot as plt
 
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
     cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catdog)
@@ -122,5 +118,5 @@ if __name__ == "__main__":
     transf = Transformation(original_source, original_target, mapping)
     result = transf(original_pose)
 
-    render.MeshPlots.plot_correspondence(original_source, original_target, mapping).show(renderer="browser")
-    plot_result.plot(original_pose, result).show(renderer="browser")
+    plt.MeshPlots.plot_correspondence(original_source, original_target, mapping).show(renderer="browser")
+    plt_res.plot(original_pose, result).show(renderer="browser")

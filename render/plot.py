@@ -3,8 +3,7 @@ from typing import Union, Sequence, Optional, Dict, List, Tuple, Any
 import numpy as np
 import plotly.graph_objects as go
 import config
-from meshlib import Mesh
-from mathlib.vector import Vec3f
+from meshlib import Mesh, Vec3f
 
 ODict = Optional[Dict]
 

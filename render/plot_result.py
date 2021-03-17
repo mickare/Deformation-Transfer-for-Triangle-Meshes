@@ -4,9 +4,9 @@ import numpy as np
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
-from config import config_default, ConfigFile
+from config import ConfigFile
 from meshlib import Mesh
-from render import BrowserVisualizer
+from render.plot import BrowserVisualizer
 
 
 def plot(source: Mesh, target: Mesh, vertices:bool =False, markers: Optional[np.ndarray] = None) -> Figure:

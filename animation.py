@@ -1,3 +1,7 @@
+"""
+Transfers the animation from a model to the target.
+"""
+
 from typing import Sequence
 
 import numpy as np
@@ -6,7 +10,7 @@ from plotly.graph_objs import Figure
 import meshlib
 from config import ConfigFile
 from correspondence import get_correspondence
-from render import BrowserVisualizer
+from render.plot import BrowserVisualizer
 from transformation import Transformation
 import plotly.graph_objects as go
 

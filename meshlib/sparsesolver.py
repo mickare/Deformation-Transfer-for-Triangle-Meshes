@@ -1,3 +1,6 @@
+"""
+Multithreading sparse solver, that is not needed anymore!
+"""
 import multiprocessing
 import os
 from abc import abstractmethod, ABC

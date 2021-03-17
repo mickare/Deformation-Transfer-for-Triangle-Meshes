@@ -1,3 +1,6 @@
+"""
+Exports all views to a html page.
+"""
 import os
 
 import meshlib
@@ -9,8 +12,8 @@ from correspondence import get_correspondence
 from transformation import Transformation
 
 if __name__ == "__main__":
-    import plot_result
-    import render
+    import render.plot_result as plt_res
+    import render.plot as plt
 
     name = "horsecamel"
     cfg = ConfigFile.load(ConfigFile.Paths.highpoly.horse_camel)
@@ -45,11 +48,11 @@ if __name__ == "__main__":
 
     path = f"result/{name}"
     os.makedirs(path, exist_ok=True)
-    render.MeshPlots.plot_correspondence(original_source, original_target, mapping).finalize().write_html(
+    plt.MeshPlots.plot_correspondence(original_source, original_target, mapping).finalize().write_html(
         os.path.join(path, "correspondence.html")
     )
-    plot_result.plot(original_source, original_target).write_html(os.path.join(path, "reference.html"))
-    plot_result.plot(original_pose, result).write_html(os.path.join(path, "result.html"))
+    plt_res.plot(original_source, original_target).write_html(os.path.join(path, "reference.html"))
+    plt_res.plot(original_pose, result).write_html(os.path.join(path, "result.html"))
 
     poses_meshes = list(cfg.source.load_poses())
     make_animation(transf, poses_meshes).write_html(os.path.join(path, "animation.html"))
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     for n, pose in enumerate(poses_meshes):
         filename = f"pose.{n}.html"
         poses.append(filename)
-        plot_result.plot(pose, transf(pose)).write_html(os.path.join(path, filename))
+        plt_res.plot(pose, transf(pose)).write_html(os.path.join(path, filename))
 
     files = [
         "reference.html",

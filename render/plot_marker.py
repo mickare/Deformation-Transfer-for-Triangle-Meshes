@@ -1,10 +1,15 @@
+"""
+Visualization of the markers between two models.
+This helps in writting your own marker files.
+"""
+
 import numpy as np
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
 from config import config_default, ConfigFile
 from meshlib import Mesh
-from render import BrowserVisualizer
+from render.plot import BrowserVisualizer
 
 
 def plot_marker(source: Mesh, target: Mesh, markers: np.ndarray) -> Figure:
