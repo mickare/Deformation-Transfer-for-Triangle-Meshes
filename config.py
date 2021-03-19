@@ -82,6 +82,7 @@ class ConfigFile:
     class Paths:
         class lowpoly:
             catdog = "models/lowpoly/markers-cat-dog.yml"
+            catvoxel = "models/lowpoly/markers-cat-voxel.yml"
 
         class highpoly:
             cat_lion = "models/highpoly/markers-cat-lion.yml"

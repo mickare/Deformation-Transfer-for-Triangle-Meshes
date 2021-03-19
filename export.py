@@ -11,6 +11,8 @@ from config import ConfigFile
 from correspondence import get_correspondence
 from transformation import Transformation
 
+import render.plotly_html
+
 if __name__ == "__main__":
     import render.plot_result as plt_res
     import render.plot as plt
@@ -24,11 +26,16 @@ if __name__ == "__main__":
     # name = "catlion"
     # cfg = ConfigFile.load(ConfigFile.Paths.highpoly.cat_lion)
 
+    # name = "catvoxel"
+    # cfg = ConfigFile.load(ConfigFile.Paths.lowpoly.catvoxel)
+
     corr_markers = cfg.markers  # List of vertex-tuples (source, target)
 
     identity = False
     if identity:
-        corr_markers = np.ascontiguousarray(np.array((corr_markers[:, 0], corr_markers[:, 0]), dtype=np.int).T)
+        corr_markers = np.ascontiguousarray(
+            np.array((corr_markers[:, 0], corr_markers[:, 0]), dtype=np.int).T
+        )
 
     #########################################################
     # Load meshes
@@ -41,34 +48,46 @@ if __name__ == "__main__":
 
     #########################################################
     # Load correspondence from cache if possible
-    mapping = get_correspondence(original_source, original_target, corr_markers, plot=False)
+    mapping = get_correspondence(
+        original_source, original_target, corr_markers, plot=False
+    )
 
     transf = Transformation(original_source, original_target, mapping)
     result = transf(original_pose)
 
     path = f"result/{name}"
     os.makedirs(path, exist_ok=True)
-    plt.MeshPlots.plot_correspondence(original_source, original_target, mapping).finalize().write_html(
-        os.path.join(path, "correspondence.html")
+    plt.MeshPlots.plot_correspondence(
+        original_source, original_target, mapping
+    ).finalize().write_html(
+        os.path.join(path, "correspondence.html"), include_plotlyjs="cdn"
     )
-    plt_res.plot(original_source, original_target).write_html(os.path.join(path, "reference.html"))
-    plt_res.plot(original_pose, result).write_html(os.path.join(path, "result.html"))
+    plt_res.plot(original_source, original_target).write_html(
+        os.path.join(path, "reference.html"), include_plotlyjs="cdn"
+    )
+    plt_res.plot(original_pose, result).write_html(
+        os.path.join(path, "result.html"), include_plotlyjs="cdn"
+    )
 
     poses_meshes = list(cfg.source.load_poses())
-    make_animation(transf, poses_meshes).write_html(os.path.join(path, "animation.html"))
+    make_animation(transf, poses_meshes).write_html(
+        os.path.join(path, "animation.html"), include_plotlyjs="cdn"
+    )
 
     poses = []
     for n, pose in enumerate(poses_meshes):
         filename = f"pose.{n}.html"
         poses.append(filename)
-        plt_res.plot(pose, transf(pose)).write_html(os.path.join(path, filename))
+        plt_res.plot(pose, transf(pose)).write_html(
+            os.path.join(path, filename), include_plotlyjs="cdn"
+        )
 
     files = [
         "reference.html",
         "correspondence.html",
         "result.html",
         "animation.html",
-        *poses
+        *poses,
     ]
 
     html = f"""<html>
@@ -128,7 +147,7 @@ if __name__ == "__main__":
         """
 
     for file in files:
-        html += f"<li><a href=\"{file}\" target=\"page\">{file}</a></li>"
+        html += f'<li><a href="{file}" target="page">{file}</a></li>'
 
     html += f"""
             </ul>
