@@ -17,8 +17,8 @@ Iteratively **closest points** are selected and increasingly weighted in the cos
 
 The **deformation transfer** is the **minimum solution** of the **Frobenius distance** between the triangle transformations `(source🠊deformed-source, target🠊deformed-target)` for each mapped triangle pairs.
 
-> "Pinning": The markers are already solved and moved to the right side of `Ax=b`.
-> "Frobenius norm": Very useful matrix norm that is invariant to matrix equation rearrangements.
+> - "Pinning": The markers are already solved and moved to the right side of `Ax=b`.
+> - "Frobenius norm": Very useful matrix norm that is invariant to matrix equation rearrangements.
 
 
 ## Examples
