@@ -11,7 +11,7 @@ The goal is to transfer animations (deformations) from one model (source) to any
 
 The core idea is to describe the linear problems as **position-independent triangle transformations** (triangle span + normal).
 
-First a **correspondence mapping** between the source and target reference models is created by **progressively "inflating"** the source shape into the target shape. Each step **minimizes the cost of the triangle transformation** of the source mesh while **pinning the used-provided marker vertices to the target mesh**.
+First a **correspondence mapping** between the source and target reference models is created by **progressively "inflating"** the source shape into the target shape. Each step **minimizes the cost of the triangle transformation** of the source mesh while **pinning the user-provided marker vertices to the target mesh**.
 Iteratively **closest points** are selected and increasingly weighted in the cost function.
 
 
