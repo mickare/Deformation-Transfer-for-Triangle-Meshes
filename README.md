@@ -75,8 +75,14 @@ File | Main
 `render/plot_marker.py` | Plots the markers for two models.
 
 
+## Contributors
 
-# License
+<a href="https://github.com/mickare/Deformation-Transfer-for-Triangle-Meshes/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=mickare/Deformation-Transfer-for-Triangle-Meshes" />
+</a>
+
+
+## License
 The code in this repository is licensed under the [MIT License](LICENSE).
 
 The models are each licensed from a third party and are not part of this license!
