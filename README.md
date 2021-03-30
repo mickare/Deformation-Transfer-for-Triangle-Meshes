@@ -78,7 +78,7 @@ File | Main
 ## Contributors
 
 <a href="https://github.com/mickare/Deformation-Transfer-for-Triangle-Meshes/graphs/contributors">
-  <img src="https://contributors-img.web.app/image?repo=mickare/Deformation-Transfer-for-Triangle-Meshes" />
+  <img src="https://contrib.rocks/image?repo=mickare/Deformation-Transfer-for-Triangle-Meshes" />
 </a>
 
 
