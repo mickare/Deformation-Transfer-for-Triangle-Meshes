@@ -1,6 +1,6 @@
 # Implementation: "Deformation Transfer for Triangle Meshes"
 
-Python implementation of the paper ["Deformation Transfer for Triangle Meshes" by Sumner, Popović](http://people.csail.mit.edu/sumner/research/deftransfer/Sumner2004DTF.pdf) with 3D views in the browser.
+A Python implementation of the paper ["Deformation Transfer for Triangle Meshes" by Sumner, Popović](http://people.csail.mit.edu/sumner/research/deftransfer/Sumner2004DTF.pdf) with 3D views in the browser.
 
  ![alt text](img/example.png "Example")
 
