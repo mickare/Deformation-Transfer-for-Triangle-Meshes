@@ -7,7 +7,6 @@ by matching the source vertices to the target vertices.
 But a better solution would be to match the source vertice to the target surfaces.
 """
 
-
 import hashlib
 from collections import defaultdict
 from typing import Tuple, Dict, Set, List, Optional
@@ -285,22 +284,24 @@ def construct_smoothness_cost(subject, invVs, adjacent) -> Tuple[sparse.spmatrix
     if AEs is None:
         size = len(subject.vertices)
 
-        def construct(f, inv, index):
-            a = TransformMatrix.expand(f, inv, size).tocsc()
+        # Prebuild TransformMatrix for each face to reduce memory allocations
+        transforms = [
+            TransformMatrix.expand(f, inv, size).tocsr() for (f, inv) in
+            tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces), desc="Building TransformMatrices")
+        ]
+
+        def construct(index):
+            a = transforms[index]
             for adj in adjacent[index]:
-                yield a, TransformMatrix.expand(subject.faces[adj], invVs[adj], size).tocsc()
+                yield a, transforms[adj]
 
-        lhs, rhs = zip(*(adjacents for index, (f, inv) in
-                         enumerate(tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces),
-                                             desc="Building Smoothness Cost"))
-                         for adjacents in construct(f, inv, index)))
-        AEs = sparse.vstack(lhs) - sparse.vstack(rhs)
+        lhs, rhs = zip(*(adjacents for index in
+                         tqdm.trange(len(subject.faces), desc="Building Smoothness Cost")
+                         for adjacents in construct(index)))
+        # Use compressed row format for subtraction
+        AEs = (sparse.vstack(lhs).tocsr() - sparse.vstack(rhs).tocsr()).tocsc()
 
-        # AEs = sparse.vstack([
-        #     adjacents for index, (f, inv) in
-        #     enumerate(tqdm.tqdm(zip(subject.faces, invVs), total=len(subject.faces), desc="Building Smoothness Cost"))
-        #     for adjacents in construct(f, inv, index)
-        # ], dtype=float).tocsr()
+        # Cleanup & store in cache
         AEs.eliminate_zeros()
         cache.store(AEs)
     else:
